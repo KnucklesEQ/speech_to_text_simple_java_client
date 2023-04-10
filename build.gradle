@@ -17,5 +17,5 @@ java {
 }
 
 application {
-    mainClassName = 'eu.nevian.test_openai_api.Main'
+    mainClassName = 'eu.nevian.speech_to_text_simple_java_client.Main'
 }
