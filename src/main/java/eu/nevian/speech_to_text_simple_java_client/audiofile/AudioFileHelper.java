@@ -1,5 +1,6 @@
 package eu.nevian.speech_to_text_simple_java_client.audiofile;
 
+import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
 
@@ -11,13 +12,12 @@ import java.nio.file.Paths;
 public class AudioFileHelper {
     private AudioFileHelper() {}
 
-    public static String validateFile(String filePath) {
+    public static String validateFile(String filePath) throws AudioFileValidationException {
         final Path path = Paths.get(filePath);
 
         // Check if the file exists
         if (!Files.exists(path)) {
-            System.err.println("File not found: " + filePath);
-            System.exit(1);
+            throw new AudioFileValidationException("File not found: " + filePath);
         }
 
         // Check the file type
@@ -27,8 +27,7 @@ public class AudioFileHelper {
         String fileType = mediaType.getType();
 
         if (!fileType.equals("audio") && !fileType.equals("video")) {
-            System.err.println("Invalid file type. Please provide an audio or video file.");
-            System.exit(1);
+            throw new AudioFileValidationException("Invalid file type. Please provide an audio or video file.");
         }
 
         System.out.println("File type: " + fileType);

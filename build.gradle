@@ -36,4 +36,12 @@ dependencies {
     // Log library (it's a requirement of the Tika library)
     implementation 'ch.qos.logback:logback-core:1.4.6'
     implementation 'ch.qos.logback:logback-classic:1.4.6'
+
+    // JUnit 5 is used for unit testing
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+}
+
+test {
+    useJUnitPlatform()
 }

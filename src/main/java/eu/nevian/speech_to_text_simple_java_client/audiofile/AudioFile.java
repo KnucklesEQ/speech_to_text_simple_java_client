@@ -6,8 +6,6 @@ public class AudioFile {
 
     public AudioFile(){}
 
-
-
     public String getFilePath() {
         return filePath;
     }

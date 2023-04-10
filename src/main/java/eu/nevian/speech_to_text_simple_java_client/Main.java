@@ -2,6 +2,7 @@ package eu.nevian.speech_to_text_simple_java_client;
 
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
+import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -22,8 +23,15 @@ public class Main {
         AudioFile audioFile = new AudioFile();
         audioFile.setFilePath(args[0]);
 
-        String fileType = AudioFileHelper.validateFile(audioFile.getFilePath());
-        audioFile.setFileType(fileType);
+        String fileType;
+
+        try {
+            fileType = AudioFileHelper.validateFile(audioFile.getFilePath());
+            audioFile.setFileType(fileType);
+        } catch (AudioFileValidationException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
 
         if (audioFile.getFileType().equals("video")) {
             String osName = System.getProperty("os.name").toLowerCase();
