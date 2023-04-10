@@ -1,2 +1,2 @@
-# test_openai_api
-Test en Java de la API de OpenAI
+# Speech to Text Java client, powered by Whisper (OpenAI)
+A simple Java client for interaction with the Whisper model of the OpenAI API.
