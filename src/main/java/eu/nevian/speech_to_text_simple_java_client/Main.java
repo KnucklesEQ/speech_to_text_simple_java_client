@@ -1,34 +1,43 @@
 package eu.nevian.speech_to_text_simple_java_client;
 
-import org.apache.tika.Tika;
-import org.apache.tika.mime.MediaType;
+import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
+import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Properties;
 
 public class Main {
     public static void main(String[] args) {
         System.out.println("Welcome!");
 
+        final String apiKey = loadApiKey();
+
         if (args.length < 1) {
             System.out.println("Usage: java -jar speech_to_text_simple_java_client.jar <audio_file_path>");
             System.exit(1);
         }
 
-        String filePath = args[0];
-        String fileType = validateFile(filePath);
-        String apiKey = loadApiKey();
+        AudioFile audioFile = new AudioFile();
+        audioFile.setFilePath(args[0]);
 
-        if (fileType.equals("video")) {
-            try {
-                filePath = extractAudioFromVideo(filePath);
-            } catch (IOException e) {
-                System.err.println("Error extracting audio from video: " + e.getMessage());
+        String fileType = AudioFileHelper.validateFile(audioFile.getFilePath());
+        audioFile.setFileType(fileType);
+
+        if (audioFile.getFileType().equals("video")) {
+            String osName = System.getProperty("os.name").toLowerCase();
+
+            if(osName.contains("linux")) {
+                try {
+                    String audioFilePath = AudioFileHelper.extractAudioFromVideo(audioFile.getFilePath());
+                    audioFile.setFilePath(audioFilePath);
+                } catch (IOException e) {
+                    System.err.println("Error extracting audio from video: " + e.getMessage());
+                    System.exit(1);
+                }
+            } else {
+                System.err.println("Error: Video file processing is supported only on Linux.");
                 System.exit(1);
             }
         }
@@ -44,37 +53,12 @@ public class Main {
 
             System.out.println();
             System.out.println("###### Transcribe audio to text ######");
-            //String audioTranscription = apiService.transcribeAudioFile(apiKey, filePath);
+            String audioTranscription = apiService.transcribeAudioFile(apiKey, audioFile.getFilePath());
             System.out.println("Text: ");
-            //System.out.println(audioTranscription);
+            System.out.println(audioTranscription);
         } catch (IOException e) {
             System.err.println("Error fetching data from API: " + e.getMessage());
         }
-    }
-
-    private static String validateFile(String filePath) {
-        final Path path = Paths.get(filePath);
-
-        // Check if the file exists
-        if (!Files.exists(path)) {
-            System.err.println("File not found: " + filePath);
-            System.exit(1);
-        }
-
-        // Check the file type
-        final Tika tika = new Tika();
-
-        MediaType mediaType = MediaType.parse(tika.detect(filePath));
-        String fileType = mediaType.getType();
-
-        if (!fileType.equals("audio") && !fileType.equals("video")) {
-            System.err.println("Invalid file type. Please provide an audio or video file.");
-            System.exit(1);
-        }
-
-        System.out.println("File type: " + fileType);
-
-        return fileType;
     }
 
     private static String loadApiKey() {
@@ -99,25 +83,4 @@ public class Main {
 
         return apiKey;
     }
-
-    private static String extractAudioFromVideo(String videoFilePath) throws IOException {
-        String audioFilePath = videoFilePath.replaceFirst("[.][^.]+$", "") + ".mp3";
-
-        ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-i", videoFilePath, "-vn", "-acodec", "libmp3lame", audioFilePath);
-        Process process = processBuilder.start();
-
-        try {
-            int exitCode = process.waitFor();
-            if (exitCode != 0) {
-                throw new IOException("Error extracting audio from video: ffmpeg exit code " + exitCode);
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("Error extracting audio from video: ffmpeg process was interrupted", e);
-        }
-
-        return audioFilePath;
-    }
-
-
 }
