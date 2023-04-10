@@ -34,5 +34,11 @@
 # Cache of project
 .gradletasknamecache
 
+## Other ##
 # File to store the api key (user will need to create this file)
 config.properties
+
+# Sample audio/video files
+*.mp3
+*.mp4
+*.mpga

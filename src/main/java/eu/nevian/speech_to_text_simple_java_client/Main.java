@@ -1,8 +1,14 @@
 package eu.nevian.speech_to_text_simple_java_client;
 
+import org.apache.tika.Tika;
+import org.apache.tika.mime.MediaType;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 public class Main {
@@ -15,6 +21,34 @@ public class Main {
         }
 
         String audioFilePath = args[0];
+
+        Path filePath = Paths.get(audioFilePath);
+
+        // Check if the file exists
+        if (!Files.exists(filePath)) {
+            System.err.println("File not found: " + audioFilePath);
+            System.exit(1);
+        }
+
+        // Check the file type
+        Tika tika = new Tika();
+        String fileType = "";
+
+        try {
+            String mimeType = tika.detect(filePath);
+            MediaType mediaType = MediaType.parse(mimeType);
+            fileType = mediaType.getType();
+        } catch (IOException e) {
+            System.err.println("Error detecting file type: " + e.getMessage());
+            System.exit(1);
+        }
+
+        if (!fileType.equals("audio") && !fileType.equals("video")) {
+            System.err.println("Invalid file type. Please provide an audio or video file.");
+            System.exit(1);
+        }
+
+        System.out.println("File type: " + fileType);
 
         Properties properties = new Properties();
         try (FileInputStream fileInputStream = new FileInputStream("config.properties")) {
@@ -34,7 +68,6 @@ public class Main {
             System.exit(1);
         }
 
-        System.out.println("API key: " + apiKey);
         ApiService apiService = new ApiService();
 
         try {
@@ -46,9 +79,9 @@ public class Main {
 
             System.out.println();
             System.out.println("###### Transcribe audio to text ######");
-            String audioTranscription = apiService.transcribeAudioFile(apiKey, audioFilePath);
+            //String audioTranscription = apiService.transcribeAudioFile(apiKey, audioFilePath);
             System.out.println("Text: ");
-            System.out.println(audioTranscription);
+            //System.out.println(audioTranscription);
         } catch (IOException e) {
             System.err.println("Error fetching data from API: " + e.getMessage());
         }
