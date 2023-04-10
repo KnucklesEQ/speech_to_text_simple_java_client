@@ -33,3 +33,6 @@
 
 # Cache of project
 .gradletasknamecache
+
+# File to store the api key (user will need to create this file)
+config.properties

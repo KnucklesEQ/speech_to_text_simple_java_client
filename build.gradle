@@ -17,6 +17,7 @@ application {
     mainClassName = 'eu.nevian.speech_to_text_simple_java_client.Main'
 }
 
+// --> ./gradlew shadowJar
 shadowJar {
     archiveBaseName.set('speech_to_text_simple_java_client')
     archiveClassifier.set('')
