@@ -1,14 +1,11 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 repositories {
     mavenCentral()
-}
-
-dependencies {
-    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
 }
 
 java {
@@ -18,4 +15,16 @@ java {
 
 application {
     mainClassName = 'eu.nevian.speech_to_text_simple_java_client.Main'
+}
+
+shadowJar {
+    archiveBaseName.set('speech_to_text_simple_java_client')
+    archiveClassifier.set('')
+    manifest {
+        attributes 'Main-Class': 'eu.nevian.speech_to_text_simple_java_client.Main'
+    }
+}
+
+dependencies {
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0'
 }
