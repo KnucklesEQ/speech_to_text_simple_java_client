@@ -62,8 +62,8 @@ public class Main {
             System.out.println();
             System.out.println("###### Transcribe audio to text ######");
             String audioTranscription = apiService.transcribeAudioFile(apiKey, audioFile.getFilePath());
-            System.out.println("Text: ");
-            System.out.println(audioTranscription);
+            TextFileHelper.saveTranscriptionToFile(audioTranscription, "transcription.txt");
+            System.out.println("DONE!");
         } catch (IOException e) {
             System.err.println("Error fetching data from API: " + e.getMessage());
         }
