@@ -56,6 +56,7 @@ public class Main {
             System.out.println();
             System.out.println("###### Trying access to OpenAI API ######");
             String responseText = apiService.checkWhisperOpenAiModel(apiKey);
+            System.out.println();
             System.out.println("API Response: ");
             System.out.println(responseText);
 
