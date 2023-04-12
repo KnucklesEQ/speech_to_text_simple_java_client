@@ -30,15 +30,19 @@ public class AudioFileHelper {
             throw new AudioFileValidationException("Invalid file type. Please provide an audio or video file.");
         }
 
-        System.out.println("File type: " + fileType);
+        System.out.println("File type validated: " + fileType + " file.");
 
         return fileType;
     }
 
     public static String extractAudioFromVideo(String videoFilePath) throws IOException {
+        if (!isFfmpegAvailable()) {
+            throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install ffmpeg' on your Linux distribution.");
+        }
+
         String audioFilePath = videoFilePath.replaceFirst("[.][^.]+$", "") + ".mp3";
 
-        ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-i", videoFilePath, "-vn", "-acodec", "libmp3lame", audioFilePath);
+        ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-i", videoFilePath, "-vn", "-acodec", "libmp3lame", "-b:a", "64k", audioFilePath);
         Process process = processBuilder.start();
 
         try {
@@ -52,5 +56,16 @@ public class AudioFileHelper {
         }
 
         return audioFilePath;
+    }
+
+    private static boolean isFfmpegAvailable() {
+        ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-version");
+        try {
+            Process process = processBuilder.start();
+            int exitCode = process.waitFor();
+            return exitCode == 0;
+        } catch (IOException | InterruptedException e) {
+            return false;
+        }
     }
 }
