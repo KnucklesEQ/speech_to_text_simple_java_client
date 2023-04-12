@@ -13,11 +13,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 public class AudioFileHelperTest {
     @Test
     public void testValidateFile() {
-        String filePath = "sample-audio.mp3";
+        String filePath = "src/test/resources/sample-audio.mp3";
         String fileType = AudioFileHelper.validateFile(filePath);
         assertEquals("audio", fileType);
 
-        filePath = "sample-video.mp4";
+        filePath = "src/test/resources/sample-video.mp4";
         fileType = AudioFileHelper.validateFile(filePath);
         assertEquals("video", fileType);
 
