@@ -32,7 +32,7 @@ public class AudioFileHelperTest {
             return;
         }
 
-        String videoFilePath = "sample-video.mp4";
+        String videoFilePath = "src/test/resources/sample-video.mp4";
         String expectedAudioFilePath = videoFilePath.replaceFirst("[.][^.]+$", "") + ".mp3";
 
         try {
