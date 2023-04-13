@@ -102,6 +102,11 @@ public class AudioFileHelper {
         return durationNode.asDouble();
     }
 
+    public static long getFileSize(String filePath) throws IOException {
+        Path path = Paths.get(filePath);
+        return Files.size(path);
+    }
+
     private static boolean isFfmpegAvailable() {
         ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-version");
         try {

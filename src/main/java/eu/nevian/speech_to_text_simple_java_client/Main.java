@@ -54,10 +54,14 @@ public class Main {
         try {
             double audioDuration = AudioFileHelper.getAudioFileDuration(audioFile.getFilePath());
             audioFile.setDuration(audioDuration);
+
+            audioFile.setFileSize(AudioFileHelper.getFileSize(audioFile.getFilePath()));
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(1);
         }
+
+        System.out.println(audioFile);
 
         ApiService apiService = new ApiService();
 
