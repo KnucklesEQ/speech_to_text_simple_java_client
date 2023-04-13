@@ -38,7 +38,7 @@ public class AudioFileHelper {
     }
 
     public static String extractAudioFromVideo(String videoFilePath) throws IOException {
-        if (!isFfmpegAvailable()) {
+        if (isFfmpegNotAvailable()) {
             throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install ffmpeg' on your Linux distribution.");
         }
 
@@ -69,7 +69,7 @@ public class AudioFileHelper {
      * @throws IOException If an error occurs while getting the duration of the audio file.
      */
     public static double getAudioFileDuration(String audioFilePath) throws IOException {
-        if (!isFfmpegAvailable()) {
+        if (isFfmpegNotAvailable()) {
             throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install ffmpeg' on your Linux distribution.");
         }
 
@@ -107,14 +107,14 @@ public class AudioFileHelper {
         return Files.size(path);
     }
 
-    private static boolean isFfmpegAvailable() {
+    private static boolean isFfmpegNotAvailable() {
         ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-version");
         try {
             Process process = processBuilder.start();
             int exitCode = process.waitFor();
-            return exitCode == 0;
+            return exitCode != 0;
         } catch (IOException | InterruptedException e) {
-            return false;
+            return true;
         }
     }
 }
