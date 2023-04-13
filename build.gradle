@@ -37,6 +37,9 @@ dependencies {
     implementation 'ch.qos.logback:logback-core:1.4.6'
     implementation 'ch.qos.logback:logback-classic:1.4.6'
 
+    // Jackson is used to parse the JSON response
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.2'
+
     // JUnit 5 is used for unit testing
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.9.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
