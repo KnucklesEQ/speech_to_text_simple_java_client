@@ -3,6 +3,7 @@ package eu.nevian.speech_to_text_simple_java_client.audiofile;
 public class AudioFile {
     private String filePath;
     private String fileType;
+    private double duration;
 
     public AudioFile(){}
 
@@ -20,5 +21,13 @@ public class AudioFile {
 
     public void setFileType(String fileType) {
         this.fileType = fileType;
+    }
+
+    public double getDuration() {
+        return duration;
+    }
+
+    public void setDuration(double duration) {
+        this.duration = duration;
     }
 }

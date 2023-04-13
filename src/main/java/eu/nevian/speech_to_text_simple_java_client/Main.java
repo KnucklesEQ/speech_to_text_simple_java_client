@@ -40,6 +40,7 @@ public class Main {
                 try {
                     String audioFilePath = AudioFileHelper.extractAudioFromVideo(audioFile.getFilePath());
                     audioFile.setFilePath(audioFilePath);
+                    audioFile.setFileType("audio");
                 } catch (IOException e) {
                     System.err.println("Error extracting audio from video: " + e.getMessage());
                     System.exit(1);
@@ -48,6 +49,14 @@ public class Main {
                 System.err.println("Error: Video file processing is supported only on Linux.");
                 System.exit(1);
             }
+        }
+
+        try {
+            double audioDuration = AudioFileHelper.getAudioFileDuration(audioFile.getFilePath());
+            audioFile.setDuration(audioDuration);
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
         }
 
         ApiService apiService = new ApiService();

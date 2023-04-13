@@ -1,5 +1,7 @@
 package eu.nevian.speech_to_text_simple_java_client.audiofile;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
@@ -56,6 +58,48 @@ public class AudioFileHelper {
         }
 
         return audioFilePath;
+    }
+
+    /**
+     * Get the duration of an audio file in seconds. This method uses the ffprobe command, which is a part of the ffmpeg
+     * suite.
+     *
+     * @param audioFilePath The path to the audio file.
+     * @return The duration of the audio file in seconds.
+     * @throws IOException If an error occurs while getting the duration of the audio file.
+     */
+    public static double getAudioFileDuration(String audioFilePath) throws IOException {
+        if (!isFfmpegAvailable()) {
+            throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install ffmpeg' on your Linux distribution.");
+        }
+
+        // -v error -> Set the log level to "error" to suppress unnecessary messages
+        // -show_entries format=duration -> Show only the duration entry from the format section
+        // -of json -> Set the output format to JSON.
+
+        ProcessBuilder processBuilder = new ProcessBuilder("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "json", audioFilePath);
+        Process process = processBuilder.start();
+
+        try {
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                throw new IOException("Error getting video duration: ffprobe exit code " + exitCode);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Error getting video duration: ffprobe process was interrupted", e);
+        }
+
+        // Read the output of the ffprobe command
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode rootNode = objectMapper.readTree(process.getInputStream());
+        JsonNode durationNode = rootNode.path("format").path("duration");
+
+        if (durationNode.isMissingNode()) {
+            throw new IOException("Error getting video duration: Duration not found in ffprobe output");
+        }
+
+        return durationNode.asDouble();
     }
 
     private static boolean isFfmpegAvailable() {
