@@ -45,12 +45,20 @@ public class AudioFile {
         return duration;
     }
 
+    public double getDurationInMinutes() {
+        return duration / 60;
+    }
+
     public void setDuration(double duration) {
         this.duration = duration;
     }
 
     public long getFileSize() {
         return fileSize;
+    }
+
+    public double getFileSizeInMB() {
+        return ((fileSize / 1024.0) / 1024.0);
     }
 
     public void setFileSize(long fileSize) {
@@ -62,8 +70,8 @@ public class AudioFile {
         return "AudioFile{" +
                 "filePath='" + filePath + '\'' +
                 ", fileType='" + fileType + '\'' +
-                ", duration=" + duration +
-                ", fileSize=" + fileSize +
+                ", duration=" + String.format("%.2f", getDurationInMinutes()) + " minutes" +
+                ", fileSize=" + String.format("%.2f", getFileSizeInMB()) + " MB" +
                 '}';
     }
 }
