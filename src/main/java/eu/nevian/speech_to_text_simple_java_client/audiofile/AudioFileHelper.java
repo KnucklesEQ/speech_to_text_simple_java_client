@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 public class AudioFileHelper {
     private AudioFileHelper() {}
@@ -105,6 +107,50 @@ public class AudioFileHelper {
     public static long getFileSize(String filePath) throws IOException {
         Path path = Paths.get(filePath);
         return Files.size(path);
+    }
+
+    public static List<AudioFile> splitAudioFileBySize(AudioFile audioFile, long maxSizeInBytes) throws IOException {
+        List<AudioFile> splitFiles = new ArrayList<>();
+
+        if (audioFile.getFileSize() <= maxSizeInBytes) {
+            splitFiles.add(audioFile);
+            return splitFiles;
+        }
+
+        // Calculate the number of parts needed
+        int numberOfParts = (int) Math.ceil((double) audioFile.getFileSize() / maxSizeInBytes);
+
+        // Calculate the duration for each part
+        double partDuration = audioFile.getDuration() / numberOfParts;
+
+        // Split the audio file into parts
+        for (int i = 0; i < numberOfParts; i++) {
+            double startTime = i * partDuration;
+            String outputFilePath = audioFile.getFilePath().replaceFirst("[.][^.]+$", "") + "-part" + (i + 1) + ".mp3";
+
+            ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-i", audioFile.getFilePath(), "-ss", String.valueOf(startTime), "-t", String.valueOf(partDuration), "-vn", "-acodec", "libmp3lame", "-b:a", "64k", outputFilePath);
+            Process process = processBuilder.start();
+
+            try {
+                int exitCode = process.waitFor();
+                if (exitCode != 0) {
+                    throw new IOException("Error splitting audio file: ffmpeg exit code " + exitCode);
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IOException("Error splitting audio file: ffmpeg process was interrupted", e);
+            }
+
+            AudioFile splitAudioFile = new AudioFile();
+            splitAudioFile.setFilePath(outputFilePath);
+            splitAudioFile.setFileType("audio");
+            splitAudioFile.setDuration(partDuration);
+            splitAudioFile.setFileSize(Files.size(Paths.get(outputFilePath)));
+
+            splitFiles.add(splitAudioFile);
+        }
+
+        return splitFiles;
     }
 
     private static boolean isFfmpegNotAvailable() {
