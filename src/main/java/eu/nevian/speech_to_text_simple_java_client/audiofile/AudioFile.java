@@ -1,8 +1,16 @@
 package eu.nevian.speech_to_text_simple_java_client.audiofile;
 
+/**
+ * Represents a file containing an audio element.
+ */
 public class AudioFile {
+    /** Path to the file. */
     private String filePath;
 
+    /**
+     * The audio could be in an audio file or even in a video file. This var reflects the type of file we are working
+     * with.
+     */
     private String fileType;
 
     /** Audio duration in seconds. */
@@ -11,8 +19,11 @@ public class AudioFile {
     /** File size in bytes. */
     private long fileSize;
 
-    /** Default constructor. */
-    public AudioFile(){}
+    /**
+     * Default constructor.
+     */
+    public AudioFile() {
+    }
 
     public String getFilePath() {
         return filePath;
