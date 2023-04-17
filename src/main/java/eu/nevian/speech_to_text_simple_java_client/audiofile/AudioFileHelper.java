@@ -51,7 +51,7 @@ public class AudioFileHelper {
 
         String audioFilePath = videoFilePath.replaceFirst("[.][^.]+$", "") + ".mp3";
 
-        ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-i", videoFilePath, "-vn", "-acodec", "libmp3lame", "-b:a", "64k", audioFilePath);
+        ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-y", "-i", videoFilePath, "-vn", "-acodec", "libmp3lame", "-b:a", "64k", audioFilePath);
         Process process = processBuilder.start();
 
         try {
@@ -133,7 +133,7 @@ public class AudioFileHelper {
             double startTime = i * partDuration;
             String outputFilePath = audioFile.getFilePath().replaceFirst("[.][^.]+$", "") + "-part" + (i + 1) + ".mp3";
 
-            ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-i", audioFile.getFilePath(), "-ss", String.valueOf(startTime), "-t", String.valueOf(partDuration), "-vn", "-acodec", "libmp3lame", "-b:a", "64k", outputFilePath);
+            ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-y", "-i", audioFile.getFilePath(), "-ss", String.valueOf(startTime), "-t", String.valueOf(partDuration), "-vn", "-acodec", "libmp3lame", "-b:a", "64k", outputFilePath);
             Process process = processBuilder.start();
 
             try {
