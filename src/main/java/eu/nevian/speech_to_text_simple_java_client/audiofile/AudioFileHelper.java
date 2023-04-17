@@ -13,8 +13,14 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Helper class for audio files.
+ */
 public class AudioFileHelper {
-    private AudioFileHelper() {}
+
+    /** Private constructor to prevent instantiation. All methods are static. */
+    private AudioFileHelper() {
+    }
 
     public static String validateFileAndGetType(String filePath) throws AudioFileValidationException {
         final Path path = Paths.get(filePath);
@@ -42,16 +48,38 @@ public class AudioFileHelper {
         return fileType;
     }
 
+    /**
+     * Extract the audio from a video file using ffmpeg. The audio extracted is saved in the same directory as the video
+     * file in a file with the same name as the video file but with the .mp3 extension.
+     *
+     * @param videoFilePath The path to the video file
+     * @return The path to the extracted audio file
+     * @throws IOException If ffmpeg is not available on the system or if the process was interrupted
+     */
     public static String extractAudioFromVideo(String videoFilePath) throws IOException {
         if (isFfmpegNotAvailable()) {
-            throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install ffmpeg' on your Linux distribution.");
+            throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install " +
+                    "ffmpeg' on your Linux distribution.");
         }
 
         System.out.println("Extracting audio from video file...");
 
         String audioFilePath = videoFilePath.replaceFirst("[.][^.]+$", "") + ".mp3";
 
-        ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-y", "-i", videoFilePath, "-vn", "-acodec", "libmp3lame", "-b:a", "64k", audioFilePath);
+        // -y -> Overwrite without asking for confirmation the output file if it already exists
+        // -i -> The input file
+        // -vn -> Disable video (only audio stream will be processed)
+        // -acodec -> The audio codec to use (libmp3lame)
+        // -b:a -> Sets the audio bitrate of the output file (64k)
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "ffmpeg",
+                "-y",
+                "-i", videoFilePath,
+                "-vn",
+                "-acodec", "libmp3lame",
+                "-b:a", "64k",
+                audioFilePath
+        );
         Process process = processBuilder.start();
 
         try {
@@ -83,8 +111,13 @@ public class AudioFileHelper {
         // -v error -> Set the log level to "error" to suppress unnecessary messages
         // -show_entries format=duration -> Show only the duration entry from the format section
         // -of json -> Set the output format to JSON.
-
-        ProcessBuilder processBuilder = new ProcessBuilder("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "json", audioFilePath);
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                "ffprobe",
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "json",
+                audioFilePath
+        );
         Process process = processBuilder.start();
 
         try {
@@ -109,11 +142,28 @@ public class AudioFileHelper {
         return durationNode.asDouble();
     }
 
+
+    /**
+     * Get the file size of a file in bytes.
+     *
+     * @param filePath The path to the file.
+     * @return The file size in bytes.
+     * @throws IOException If an error occurs while getting the file size.
+     */
     public static long getFileSize(String filePath) throws IOException {
         Path path = Paths.get(filePath);
         return Files.size(path);
     }
 
+    /**
+     * Split an audio file into multiple parts, each one with a maximum size of maxSizeInBytes. This method uses the
+     * ffmpeg command.
+     *
+     * @param audioFile      The audio file to split.
+     * @param maxSizeInBytes The maximum size of each part in bytes.
+     * @return A list of audio files, each one with a maximum size of maxSizeInBytes.
+     * @throws IOException If an error occurs while splitting the audio file.
+     */
     public static List<AudioFile> splitAudioFileBySize(AudioFile audioFile, long maxSizeInBytes) throws IOException {
         List<AudioFile> splitFiles = new ArrayList<>();
 
@@ -133,7 +183,24 @@ public class AudioFileHelper {
             double startTime = i * partDuration;
             String outputFilePath = audioFile.getFilePath().replaceFirst("[.][^.]+$", "") + "-part" + (i + 1) + ".mp3";
 
-            ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-y", "-i", audioFile.getFilePath(), "-ss", String.valueOf(startTime), "-t", String.valueOf(partDuration), "-vn", "-acodec", "libmp3lame", "-b:a", "64k", outputFilePath);
+            // -y -> Overwrite without asking for confirmation the output file if it already exists
+            // -i -> The input file
+            // -ss -> The start time (in seconds) of the part to extract
+            // -t -> The duration (in seconds) of the part to extract
+            // -vn -> Disable video (only audio stream will be processed)
+            // -acodec -> The audio codec to use (libmp3lame)
+            // -b:a -> Sets the audio bitrate of the output file (64k)
+            ProcessBuilder processBuilder = new ProcessBuilder(
+                    "ffmpeg",
+                    "-y",
+                    "-i", audioFile.getFilePath(),
+                    "-ss", String.valueOf(startTime),
+                    "-t", String.valueOf(partDuration),
+                    "-vn",
+                    "-acodec", "libmp3lame",
+                    "-b:a", "64k",
+                    outputFilePath
+            );
             Process process = processBuilder.start();
 
             try {
@@ -146,6 +213,7 @@ public class AudioFileHelper {
                 throw new IOException("Error splitting audio file: ffmpeg process was interrupted", e);
             }
 
+            // Create a new AudioFile object for the part
             AudioFile splitAudioFile = new AudioFile();
             splitAudioFile.setFilePath(outputFilePath);
             splitAudioFile.setFileType("audio");
@@ -158,6 +226,11 @@ public class AudioFileHelper {
         return splitFiles;
     }
 
+    /**
+     * Check if ffmpeg is NOT available on the system.
+     *
+     * @return True if ffmpeg is NOT available, false otherwise.
+     */
     private static boolean isFfmpegNotAvailable() {
         ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-version");
         try {
