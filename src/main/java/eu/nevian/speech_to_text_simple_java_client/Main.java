@@ -13,7 +13,7 @@ import java.util.Properties;
 
 public class Main {
     private static final String API_KEY_FILE_PATH = "config.properties";
-    private static final int MAX_FILE_SIZE_IN_BYTES = 3 * 1024 * 1024; // 24 MB
+    private static final int MAX_FILE_SIZE_IN_BYTES = 24 * 1024 * 1024; // 24 MB
 
     public static void main(String[] args) {
         System.out.println("Welcome!\n");
@@ -114,7 +114,7 @@ public class Main {
                 if (audioTranscription.length() > 0) {
                     audioTranscription.append("\n//\n");
                 }
-                audioTranscription.append(apiService.transcribeAudioFileFake(apiKey, af.getFilePath()));
+                audioTranscription.append(apiService.transcribeAudioFile(apiKey, af.getFilePath()));
             }
 
             TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");
