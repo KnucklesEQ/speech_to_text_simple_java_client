@@ -7,12 +7,13 @@ import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidatio
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 public class Main {
     private static final String API_KEY_FILE_PATH = "config.properties";
-    private static final int MAX_FILE_SIZE_IN_BYTES = 12 * 1024 * 1024; // 24 MB
+    private static final int MAX_FILE_SIZE_IN_BYTES = 3 * 1024 * 1024; // 24 MB
 
     public static void main(String[] args) {
         System.out.println("Welcome!\n");
@@ -71,23 +72,26 @@ public class Main {
         System.out.println(audioFile);
 
         // Step 7: Split the audio file if it is too big (max size admitted by OpenAI API is 25 MB)
+        final List<AudioFile> audioFileList = new ArrayList<>();
+
         try {
             if (audioFile.getFileSize() > MAX_FILE_SIZE_IN_BYTES) {
                 System.out.println();
                 System.out.println("File is too big. Splitting it into smaller files...\n");
             }
 
-            List<AudioFile> aux = AudioFileHelper.splitAudioFileBySize(audioFile, MAX_FILE_SIZE_IN_BYTES);
+            audioFileList.addAll(AudioFileHelper.splitAudioFileBySize(audioFile, MAX_FILE_SIZE_IN_BYTES));
 
             // Step 7b: Print the info of the audio files split from the original one
-            if (aux.size() > 1) {
-                System.out.println("Audio split into " + aux.size() + " smaller files:");
-                for (AudioFile af : aux) {
+            if (audioFileList.size() > 1) {
+                System.out.println("Audio split into " + audioFileList.size() + " smaller files:");
+                for (AudioFile af : audioFileList) {
                     System.out.println(af);
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            System.err.println("Error splitting audio file: " + e.getMessage());
+            System.exit(1);
         }
 
         // Step 8: It's time to call the API
@@ -95,18 +99,26 @@ public class Main {
 
         try {
             System.out.println();
-            System.out.println("###### Trying access to OpenAI API ######");
+            System.out.println("###### Checking access to OpenAI API: Whisper model ######");
             String responseText = apiService.checkWhisperOpenAiModel(apiKey);
             System.out.println();
-            System.out.println("API Response: ");
-            System.out.println(responseText);
+            System.out.println("API Response: " + (!responseText.isEmpty()));
 
             System.out.println();
             System.out.println("###### Transcribe audio to text ######");
-            String audioTranscription = apiService.transcribeAudioFile(apiKey, audioFile.getFilePath());
-            TextFileHelper.saveTranscriptionToFile(audioTranscription, "transcription.txt");
-            System.out.println();
-            System.out.println("DONE!");
+
+            StringBuilder audioTranscription = new StringBuilder();
+
+            for (AudioFile af : audioFileList) {
+                // This will append the separator only if there's already content in the audioTranscription.
+                if (audioTranscription.length() > 0) {
+                    audioTranscription.append("\n//\n");
+                }
+                audioTranscription.append(apiService.transcribeAudioFileFake(apiKey, af.getFilePath()));
+            }
+
+            TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");
+            System.out.println("\nDONE!\n");
         } catch (IOException e) {
             System.err.println("Error fetching data from API: " + e.getMessage());
         }
