@@ -12,7 +12,7 @@ import java.util.Properties;
 
 public class Main {
     private static final String API_KEY_FILE_PATH = "config.properties";
-    private static final int MAX_FILE_SIZE_IN_BYTES = 24 * 1024 * 1024; // 24 MB
+    private static final int MAX_FILE_SIZE_IN_BYTES = 12 * 1024 * 1024; // 24 MB
 
     public static void main(String[] args) {
         System.out.println("Welcome!\n");
@@ -72,13 +72,16 @@ public class Main {
 
         // Step 7: Split the audio file if it is too big (max size admitted by OpenAI API is 25 MB)
         try {
+            if (audioFile.getFileSize() > MAX_FILE_SIZE_IN_BYTES) {
+                System.out.println();
+                System.out.println("File is too big. Splitting it into smaller files...\n");
+            }
+
             List<AudioFile> aux = AudioFileHelper.splitAudioFileBySize(audioFile, MAX_FILE_SIZE_IN_BYTES);
 
             // Step 7b: Print the info of the audio files split from the original one
             if (aux.size() > 1) {
-                System.out.println();
-                System.out.println("Audio file is too big. It will be split into " + aux.size() + " smaller files:");
-
+                System.out.println("Audio split into " + aux.size() + " smaller files:");
                 for (AudioFile af : aux) {
                     System.out.println(af);
                 }
@@ -102,6 +105,7 @@ public class Main {
             System.out.println("###### Transcribe audio to text ######");
             String audioTranscription = apiService.transcribeAudioFile(apiKey, audioFile.getFilePath());
             TextFileHelper.saveTranscriptionToFile(audioTranscription, "transcription.txt");
+            System.out.println();
             System.out.println("DONE!");
         } catch (IOException e) {
             System.err.println("Error fetching data from API: " + e.getMessage());
