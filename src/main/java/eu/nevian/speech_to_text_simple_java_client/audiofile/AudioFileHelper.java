@@ -16,13 +16,15 @@ import java.util.List;
 public class AudioFileHelper {
     private AudioFileHelper() {}
 
-    public static String validateFile(String filePath) throws AudioFileValidationException {
+    public static String validateFileAndGetType(String filePath) throws AudioFileValidationException {
         final Path path = Paths.get(filePath);
 
         // Check if the file exists
         if (!Files.exists(path)) {
             throw new AudioFileValidationException("File not found: " + filePath);
         }
+
+        System.out.println("File found at: " + filePath);
 
         // Check the file type
         final Tika tika = new Tika();
@@ -34,6 +36,7 @@ public class AudioFileHelper {
             throw new AudioFileValidationException("Invalid file type. Please provide an audio or video file.");
         }
 
+        System.out.println();
         System.out.println("File type validated: " + fileType + " file.");
 
         return fileType;
@@ -43,6 +46,8 @@ public class AudioFileHelper {
         if (isFfmpegNotAvailable()) {
             throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install ffmpeg' on your Linux distribution.");
         }
+
+        System.out.println("Extracting audio from video file...");
 
         String audioFilePath = videoFilePath.replaceFirst("[.][^.]+$", "") + ".mp3";
 

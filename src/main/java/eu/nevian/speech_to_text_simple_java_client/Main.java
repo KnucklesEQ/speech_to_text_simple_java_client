@@ -7,14 +7,20 @@ import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidatio
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 import java.util.Properties;
 
 public class Main {
-    public static void main(String[] args) {
-        System.out.println("Welcome!");
+    private static final String API_KEY_FILE_PATH = "config.properties";
+    private static final int MAX_FILE_SIZE_IN_BYTES = 24 * 1024 * 1024; // 24 MB
 
+    public static void main(String[] args) {
+        System.out.println("Welcome!\n");
+
+        // Step 1: Load API key from file (config.properties)
         final String apiKey = loadApiKey();
 
+        // Step 2: Check if user provided an audio file path
         if (args.length < 1) {
             System.out.println("Usage: java -jar speech_to_text_simple_java_client.jar <audio_file_path>");
             System.exit(1);
@@ -23,20 +29,21 @@ public class Main {
         AudioFile audioFile = new AudioFile();
         audioFile.setFilePath(args[0]);
 
-        String fileType;
-
+        // Step 3: Check if the file exists and type
         try {
-            fileType = AudioFileHelper.validateFile(audioFile.getFilePath());
+            System.out.println("Validating file...\n");
+            String fileType = AudioFileHelper.validateFileAndGetType(audioFile.getFilePath());
             audioFile.setFileType(fileType);
         } catch (AudioFileValidationException e) {
             System.err.println(e.getMessage());
             System.exit(1);
         }
 
+        // Step 4: If the file is a video, extract the audio from it
         if (audioFile.getFileType().equals("video")) {
             String osName = System.getProperty("os.name").toLowerCase();
 
-            if(osName.contains("linux")) {
+            if (osName.contains("linux")) {
                 try {
                     String audioFilePath = AudioFileHelper.extractAudioFromVideo(audioFile.getFilePath());
                     audioFile.setFilePath(audioFilePath);
@@ -51,18 +58,36 @@ public class Main {
             }
         }
 
+        // Step 5: Get audio file duration and size
         try {
-            double audioDuration = AudioFileHelper.getAudioFileDuration(audioFile.getFilePath());
-            audioFile.setDuration(audioDuration);
-
+            audioFile.setDuration(AudioFileHelper.getAudioFileDuration(audioFile.getFilePath()));
             audioFile.setFileSize(AudioFileHelper.getFileSize(audioFile.getFilePath()));
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(1);
         }
 
+        // Step 6: Print the info about the audio file that we are working with
         System.out.println(audioFile);
 
+        // Step 7: Split the audio file if it is too big (max size admitted by OpenAI API is 25 MB)
+        try {
+            List<AudioFile> aux = AudioFileHelper.splitAudioFileBySize(audioFile, MAX_FILE_SIZE_IN_BYTES);
+
+            // Step 7b: Print the info of the audio files split from the original one
+            if (aux.size() > 1) {
+                System.out.println();
+                System.out.println("Audio file is too big. It will be split into " + aux.size() + " smaller files:");
+
+                for (AudioFile af : aux) {
+                    System.out.println(af);
+                }
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        // Step 8: It's time to call the API
         ApiService apiService = new ApiService();
 
         try {
@@ -86,7 +111,7 @@ public class Main {
     private static String loadApiKey() {
         Properties properties = new Properties();
 
-        try (FileInputStream fileInputStream = new FileInputStream("config.properties")) {
+        try (FileInputStream fileInputStream = new FileInputStream(API_KEY_FILE_PATH)) {
             properties.load(fileInputStream);
         } catch (FileNotFoundException e) {
             System.err.println("Unable to find config.properties file.");

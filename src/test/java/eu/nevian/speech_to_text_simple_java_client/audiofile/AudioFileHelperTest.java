@@ -14,14 +14,14 @@ public class AudioFileHelperTest {
     @Test
     public void testValidateFile() {
         String filePath = "src/test/resources/sample-audio.mp3";
-        String fileType = AudioFileHelper.validateFile(filePath);
+        String fileType = AudioFileHelper.validateFileAndGetType(filePath);
         assertEquals("audio", fileType);
 
         filePath = "src/test/resources/sample-video.mp4";
-        fileType = AudioFileHelper.validateFile(filePath);
+        fileType = AudioFileHelper.validateFileAndGetType(filePath);
         assertEquals("video", fileType);
 
-        assertThrows(AudioFileValidationException.class, () -> AudioFileHelper.validateFile("config.properties"));
+        assertThrows(AudioFileValidationException.class, () -> AudioFileHelper.validateFileAndGetType("config.properties"));
     }
 
     @Test
