@@ -4,12 +4,14 @@ import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.Scanner;
 
 public class Main {
     private static final String API_KEY_FILE_PATH = "config.properties";
@@ -118,9 +120,40 @@ public class Main {
             }
 
             TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");
-            System.out.println("\nDONE!\n");
+            System.out.println("\n\nDONE!\n");
         } catch (IOException e) {
             System.err.println("Error fetching data from API: " + e.getMessage());
+            System.exit(1);
+        }
+
+        //Step 9: Ask the user if he wants to move the transcription file to the same folder as the audio file
+        System.out.print("Do you want to move the transcription.txt file to the same folder as the audio file? (y/n) ");
+        String userAnswer;
+
+        try (Scanner scanner = new Scanner(System.in)) {
+            userAnswer = scanner.nextLine();
+        }
+
+        if (userAnswer.equals("y") || userAnswer.equals("Y")) {
+            File sourceFile = new File("transcription.txt");
+
+            String destinationFolderPath = new File(audioFile.getFilePath()).getParent();
+
+            String audioFileName = new File(audioFile.getFilePath()).getName();
+            String fileNameWithoutExtension = audioFileName.substring(0, audioFileName.lastIndexOf('.'));
+            String destinationFileName = fileNameWithoutExtension + "_TRANSCRIPTION" + ".txt";
+
+            try {
+                TextFileHelper.moveTranscriptionFile(sourceFile, destinationFolderPath, destinationFileName);
+
+                System.out.println("Transcription file has been moved to the audio file's folder.");
+                System.out.println("You can find it at: " + new File(destinationFolderPath, destinationFileName).getAbsolutePath());
+            } catch (IOException e) {
+                System.out.println("Failed to move the transcription file.");
+                System.out.println("You can find it at: " + new File("transcription.txt").getAbsolutePath());
+            }
+        } else {
+            System.out.println("Transcription file will not be moved. You can find it at: " + new File("transcription.txt").getAbsolutePath());
         }
     }
 
