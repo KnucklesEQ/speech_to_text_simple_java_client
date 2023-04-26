@@ -19,4 +19,14 @@ public class TextFileHelper {
 
         Files.move(sourceFile.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
+
+    public static int countWords(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return 0;
+        }
+
+        // Split on whitespace with regex to handle multiple spaces (\\s is a whitespace character, + means one or more)
+        String[] words = text.trim().split("\\s+");
+        return words.length;
+    }
 }
