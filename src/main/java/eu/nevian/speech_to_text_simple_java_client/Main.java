@@ -121,6 +121,9 @@ public class Main {
 
             TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");
             System.out.println("\n\nDONE!\n");
+
+            System.out.println("The API response has: " + audioTranscription.length() + " characters and "
+                    + TextFileHelper.countWords(audioTranscription.toString()) + " words.\n");
         } catch (IOException e) {
             System.err.println("Error fetching data from API: " + e.getMessage());
             System.exit(1);
