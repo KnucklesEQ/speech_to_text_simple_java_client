@@ -1,6 +1,8 @@
 package eu.nevian.speech_to_text_simple_java_client;
 
 import okhttp3.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * This class is responsible for making API calls to OpenAI API.
  */
 public class ApiService {
+    private static final Logger logger = LoggerFactory.getLogger(ApiService.class);
+
     /** HTTP client used for making API calls. */
     private final OkHttpClient httpClient;
 
@@ -114,7 +118,7 @@ public class ApiService {
         AtomicInteger spinnerIndex = new AtomicInteger(0);
 
         Runnable loadingTask = () ->
-            System.out.print("\rLoading... " + spinnerChars[spinnerIndex.getAndIncrement() % spinnerChars.length]);
+            logger.info("\rLoading... " + spinnerChars[spinnerIndex.getAndIncrement() % spinnerChars.length]);
 
         // Schedule the loadingTask to run every 100 milliseconds
         executor.scheduleAtFixedRate(loadingTask, 0, 100, TimeUnit.MILLISECONDS);

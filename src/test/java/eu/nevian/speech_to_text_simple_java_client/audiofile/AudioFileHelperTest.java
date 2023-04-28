@@ -2,6 +2,8 @@ package eu.nevian.speech_to_text_simple_java_client.audiofile;
 
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,6 +13,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class AudioFileHelperTest {
+    private static final Logger logger = LoggerFactory.getLogger(AudioFileHelperTest.class);
+
     @Test
     public void testValidateFile() {
         String filePath = "src/test/resources/sample-audio.mp3";
@@ -28,7 +32,7 @@ public class AudioFileHelperTest {
     public void testExtractAudioFromVideo() {
         String osName = System.getProperty("os.name").toLowerCase();
         if (!osName.contains("linux")) {
-            System.out.println("Skipping testExtractAudioFromVideo on non-Linux system.");
+            logger.debug("Skipping testExtractAudioFromVideo on non-Linux system.");
             return;
         }
 
@@ -42,7 +46,7 @@ public class AudioFileHelperTest {
             Path audioPath = Path.of(audioFilePath);
             Files.deleteIfExists(audioPath);
         } catch (IOException e) {
-            System.err.println("Error extracting audio from video or deleting audio file: " + e.getMessage());
+            logger.error("Error extracting audio from video or deleting audio file: " + e.getMessage());
         }
     }
 }
