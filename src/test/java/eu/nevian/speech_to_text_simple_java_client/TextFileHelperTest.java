@@ -1,5 +1,6 @@
 package eu.nevian.speech_to_text_simple_java_client;
 
+import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
