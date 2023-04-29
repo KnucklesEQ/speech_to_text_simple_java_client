@@ -4,6 +4,8 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
+version = '0.1.0'
+
 repositories {
     mavenCentral()
 }
@@ -15,6 +17,12 @@ java {
 
 application {
     mainClassName = 'eu.nevian.speech_to_text_simple_java_client.Main'
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Version': version
+    }
 }
 
 // --> ./gradlew shadowJar
@@ -33,9 +41,12 @@ dependencies {
     // Tika is used to detect the MIME type of the file passed as argument
     implementation 'org.apache.tika:tika-core:2.7.0'
 
-    // Log library (it's a requirement of the Tika library)
+    // Log library
     implementation 'ch.qos.logback:logback-core:1.4.6'
     implementation 'ch.qos.logback:logback-classic:1.4.6'
+
+    // Commons CLI is used to parse the command line arguments
+    implementation 'commons-cli:commons-cli:1.5.0'
 
     // Jackson is used to parse the JSON response
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.14.2'

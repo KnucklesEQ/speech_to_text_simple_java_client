@@ -30,4 +30,4 @@ A simple Java client for interacting with the Whisper model of the OpenAI API. C
 
 * Run the project (INPUT_FILE is the path to the audio or video file you want to transcribe):
 
-    ```java -jar build/libs/speech_to_text_simple_java_client.jar INPUT_FILE```
+    ```java -jar build/libs/speech_to_text_simple_java_client-0.1.0.jar INPUT_FILE```
