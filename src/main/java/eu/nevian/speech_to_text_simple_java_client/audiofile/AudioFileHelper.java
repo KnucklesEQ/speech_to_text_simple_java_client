@@ -3,6 +3,7 @@ package eu.nevian.speech_to_text_simple_java_client.audiofile;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
+import eu.nevian.speech_to_text_simple_java_client.utils.FfmpegProcessHelper;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
 import org.slf4j.Logger;
@@ -21,7 +22,9 @@ import java.util.List;
 public class AudioFileHelper {
     private static final Logger logger = LoggerFactory.getLogger(AudioFileHelper.class);
 
-    /** Private constructor to prevent instantiation. All methods are static. */
+    /**
+     * Private constructor to prevent instantiation. All methods are static.
+     */
     private AudioFileHelper() {
     }
 
@@ -51,15 +54,15 @@ public class AudioFileHelper {
     }
 
     /**
-     * Extract the audio from a video file using ffmpeg. The audio extracted is saved in the same directory as the video
-     * file in a file with the same name as the video file but with the .mp3 extension.
+     * Extract the audio from a video file. The audio extracted is saved in the same directory as the video file in a
+     * file with the same name as the video file but with the .mp3 extension.
      *
      * @param videoFilePath The path to the video file
      * @return The path to the extracted audio file
      * @throws IOException If ffmpeg is not available on the system or if the process was interrupted
      */
     public static String extractAudioFromVideo(String videoFilePath) throws IOException {
-        if (isFfmpegNotAvailable()) {
+        if (FfmpegProcessHelper.isFfmpegNotAvailable()) {
             throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install " +
                     "ffmpeg' on your Linux distribution.");
         }
@@ -68,20 +71,7 @@ public class AudioFileHelper {
 
         String audioFilePath = videoFilePath.replaceFirst("[.][^.]+$", "") + ".mp3";
 
-        // -y -> Overwrite without asking for confirmation the output file if it already exists
-        // -i -> The input file
-        // -vn -> Disable video (only audio stream will be processed)
-        // -acodec -> The audio codec to use (libmp3lame)
-        // -b:a -> Sets the audio bitrate of the output file (64k)
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                "ffmpeg",
-                "-y",
-                "-i", videoFilePath,
-                "-vn",
-                "-acodec", "libmp3lame",
-                "-b:a", "64k",
-                audioFilePath
-        );
+        ProcessBuilder processBuilder = FfmpegProcessHelper.createExtractAudioProcessBuilder(videoFilePath, audioFilePath);
         Process process = processBuilder.start();
 
         try {
@@ -106,20 +96,11 @@ public class AudioFileHelper {
      * @throws IOException If an error occurs while getting the duration of the audio file.
      */
     public static double getAudioFileDuration(String audioFilePath) throws IOException {
-        if (isFfmpegNotAvailable()) {
+        if (FfmpegProcessHelper.isFfmpegNotAvailable()) {
             throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install ffmpeg' on your Linux distribution.");
         }
 
-        // -v error -> Set the log level to "error" to suppress unnecessary messages
-        // -show_entries format=duration -> Show only the duration entry from the format section
-        // -of json -> Set the output format to JSON.
-        ProcessBuilder processBuilder = new ProcessBuilder(
-                "ffprobe",
-                "-v", "error",
-                "-show_entries", "format=duration",
-                "-of", "json",
-                audioFilePath
-        );
+        ProcessBuilder processBuilder = FfmpegProcessHelper.createGetAudioDurationProcessBuilder(audioFilePath);
         Process process = processBuilder.start();
 
         try {
@@ -152,7 +133,7 @@ public class AudioFileHelper {
      * @return The file size in bytes.
      * @throws IOException If an error occurs while getting the file size.
      */
-    public static long getFileSize(String filePath) throws IOException {
+    public static long getAudioFileSize(String filePath) throws IOException {
         Path path = Paths.get(filePath);
         return Files.size(path);
     }
@@ -185,24 +166,8 @@ public class AudioFileHelper {
             double startTime = i * partDuration;
             String outputFilePath = audioFile.getFilePath().replaceFirst("[.][^.]+$", "") + "-part" + (i + 1) + ".mp3";
 
-            // -y -> Overwrite without asking for confirmation the output file if it already exists
-            // -i -> The input file
-            // -ss -> The start time (in seconds) of the part to extract
-            // -t -> The duration (in seconds) of the part to extract
-            // -vn -> Disable video (only audio stream will be processed)
-            // -acodec -> The audio codec to use (libmp3lame)
-            // -b:a -> Sets the audio bitrate of the output file (64k)
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    "ffmpeg",
-                    "-y",
-                    "-i", audioFile.getFilePath(),
-                    "-ss", String.valueOf(startTime),
-                    "-t", String.valueOf(partDuration),
-                    "-vn",
-                    "-acodec", "libmp3lame",
-                    "-b:a", "64k",
-                    outputFilePath
-            );
+            ProcessBuilder processBuilder = FfmpegProcessHelper.createCutAudioProcessBuilder(
+                    audioFile.getFilePath(), outputFilePath, startTime, partDuration);
             Process process = processBuilder.start();
 
             try {
@@ -226,21 +191,5 @@ public class AudioFileHelper {
         }
 
         return splitFiles;
-    }
-
-    /**
-     * Check if ffmpeg is NOT available on the system.
-     *
-     * @return True if ffmpeg is NOT available, false otherwise.
-     */
-    private static boolean isFfmpegNotAvailable() {
-        ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-version");
-        try {
-            Process process = processBuilder.start();
-            int exitCode = process.waitFor();
-            return exitCode != 0;
-        } catch (IOException | InterruptedException e) {
-            return true;
-        }
     }
 }

@@ -68,7 +68,7 @@ public class Main {
         // Step 5: Get audio file duration and size
         try {
             audioFile.setDuration(AudioFileHelper.getAudioFileDuration(audioFile.getFilePath()));
-            audioFile.setFileSize(AudioFileHelper.getFileSize(audioFile.getFilePath()));
+            audioFile.setFileSize(AudioFileHelper.getAudioFileSize(audioFile.getFilePath()));
         } catch (IOException e) {
             logger.error(e.getMessage());
             System.exit(1);
