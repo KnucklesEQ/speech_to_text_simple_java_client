@@ -5,10 +5,19 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Helper class to create ffmpeg processes. Note that ffprobe command is a part of the ffmpeg suite.
+ */
 public class FfmpegProcessHelper {
+    /** The audio codec to use */
     private static final String AUDIO_CODEC = "libmp3lame";
+
+    /** The bitrate of the output audio files */
     private static final String AUDIO_BITRATE = "64k";
 
+    /**
+     * Private constructor to prevent instantiation. All methods are static.
+     */
     private FfmpegProcessHelper() {
     }
 
@@ -28,6 +37,12 @@ public class FfmpegProcessHelper {
         }
     }
 
+    /**
+     * Create a process builder for ffmpeg command with the given arguments.
+     *
+     * @param args The arguments to pass to ffmpeg command
+     * @return The process builder
+     */
     public static ProcessBuilder createFfmpegProcessBuilder(String... args) {
         List<String> command = new ArrayList<>();
         command.add("ffmpeg");
@@ -36,6 +51,11 @@ public class FfmpegProcessHelper {
         return new ProcessBuilder(command);
     }
 
+    /**
+     * Create a process builder for ffprobe command with the given arguments.
+     * @param args The arguments to pass to ffprobe command
+     * @return The process builder
+     */
     public static ProcessBuilder createFfprobeProcessBuilder(String... args) {
         List<String> command = new ArrayList<>();
         command.add("ffprobe");
@@ -44,6 +64,13 @@ public class FfmpegProcessHelper {
         return new ProcessBuilder(command);
     }
 
+    /**
+     * Create a process builder for ffmpeg command to extract the audio from a video file.
+     *
+     * @param inputFilePath The path to the video file
+     * @param outputFilePath The path to the output audio file
+     * @return The process builder
+     */
     public static ProcessBuilder createExtractAudioProcessBuilder(String inputFilePath, String outputFilePath) {
         // -y -> Overwrite without asking for confirmation the output file if it already exists
         // -i -> The input file
@@ -60,6 +87,15 @@ public class FfmpegProcessHelper {
         );
     }
 
+    /**
+     * Create a process builder for ffmpeg command to cut a part of an audio file.
+     *
+     * @param inputFilePath The path to the input audio file
+     * @param outputFilePath The path to the output audio file
+     * @param startTime The start time (in seconds) of the part to extract
+     * @param duration The duration (in seconds) of the part to extract
+     * @return The process builder
+     */
     public static ProcessBuilder createCutAudioProcessBuilder(String inputFilePath, String outputFilePath, double startTime, double duration) {
         // -y -> Overwrite without asking for confirmation the output file if it already exists
         // -i -> The input file
@@ -80,6 +116,12 @@ public class FfmpegProcessHelper {
         );
     }
 
+    /**
+     * Create a process builder for ffprobe command to get the duration of an audio file.
+     *
+     * @param inputFilePath The path to the audio file
+     * @return The process builder
+     */
     public static ProcessBuilder createGetAudioDurationProcessBuilder(String inputFilePath) {
         // -v error -> Set the log level to "error" to suppress unnecessary messages
         // -show_entries format=duration -> Show only the duration entry from the format section
