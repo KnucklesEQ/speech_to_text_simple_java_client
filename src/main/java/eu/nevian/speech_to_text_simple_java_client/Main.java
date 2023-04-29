@@ -4,6 +4,7 @@ import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
+import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,19 +23,53 @@ public class Main {
     private static final int MAX_FILE_SIZE_IN_BYTES = 24 * 1024 * 1024; // 24 MB
 
     public static void main(String[] args) {
+        Options options = new Options();
+
+        Option helpOption = new Option("h", "help", false, "Show help");
+        helpOption.setArgName(" ");
+        options.addOption(helpOption);
+
+        Option versionOption = new Option("v", "version", false, "Show version");
+        versionOption.setArgName(" ");
+        options.addOption(versionOption);
+
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cmd = null;
+
+        try {
+            cmd = parser.parse(options, args);
+
+            if (cmd.hasOption("help")) {
+                printCustomHelp(options);
+                System.exit(0);
+            }
+
+            if (cmd.hasOption("version")) {
+                logger.info("Speech to Text Simple Java Client version " + getVersion());
+                System.exit(0);
+            }
+        } catch (ParseException e) {
+            logger.error("Error parsing command line arguments: " + e.getMessage());
+            System.exit(1);
+        }
+
+        // Get the remaining positional arguments
+        List<String> positionalArgs = cmd.getArgList();
+
+        // Check if the file path argument is provided
+        if (positionalArgs.isEmpty()) {
+            logger.error("Error: Missing required file path argument");
+            printCustomHelp(options);
+            System.exit(1);
+        }
+
         logger.info("Welcome!\n");
 
         // Step 1: Load API key from file (config.properties)
         final String apiKey = loadApiKey();
 
-        // Step 2: Check if user provided an audio file path
-        if (args.length < 1) {
-            logger.error("Usage: java -jar speech_to_text_simple_java_client.jar <audio_file_path>");
-            System.exit(1);
-        }
-
         AudioFile audioFile = new AudioFile();
-        audioFile.setFilePath(args[0]);
+        audioFile.setFilePath(positionalArgs.get(0));
 
         // Step 3: Check if the file exists and type
         try {
@@ -180,5 +215,20 @@ public class Main {
         }
 
         return apiKey;
+    }
+
+    public static String getVersion() {
+        String version = Main.class.getPackage().getImplementationVersion();
+        return version != null ? version : "unknown";
+    }
+
+    private static void printCustomHelp(Options options) {
+        logger.info("Usage:");
+        logger.info("  java -jar speech_to_text_simple_java_client.jar [options] <FILE>");
+        logger.info("\nOptions:");
+        logger.info(String.format("  %-2s %-8s  %s", "<FILE>", "", "Path to audio file or video file to transcribe"));
+        for (Option option : options.getOptions()) {
+            logger.info(String.format("  -%s,--%-10s  %s", option.getOpt(), option.getLongOpt(), option.getDescription()));
+        }
     }
 }
