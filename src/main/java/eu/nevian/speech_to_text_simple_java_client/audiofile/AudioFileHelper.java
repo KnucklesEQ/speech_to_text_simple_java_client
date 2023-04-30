@@ -6,8 +6,6 @@ import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidatio
 import eu.nevian.speech_to_text_simple_java_client.utils.FfmpegProcessHelper;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,8 +18,6 @@ import java.util.List;
  * Helper class for audio files.
  */
 public class AudioFileHelper {
-    private static final Logger logger = LoggerFactory.getLogger(AudioFileHelper.class);
-
     /**
      * Private constructor to prevent instantiation. All methods are static.
      */
@@ -36,7 +32,7 @@ public class AudioFileHelper {
             throw new AudioFileValidationException("File not found: " + filePath);
         }
 
-        logger.info("File found at: " + filePath);
+        System.out.println("File found at: " + filePath);
 
         // Check the file type
         final Tika tika = new Tika();
@@ -48,7 +44,7 @@ public class AudioFileHelper {
             throw new AudioFileValidationException("Invalid file type. Please provide an audio or video file.");
         }
 
-        logger.info("\nFile type validated: " + fileType + " file.");
+        System.out.println("\nFile type validated: " + fileType + " file.");
 
         return fileType;
     }
@@ -67,7 +63,7 @@ public class AudioFileHelper {
                     "ffmpeg' on your Linux distribution.");
         }
 
-        logger.info("Extracting audio from video file...");
+        System.out.println("Extracting audio from video file...");
 
         String audioFilePath = videoFilePath.replaceFirst("[.][^.]+$", "") + ".mp3";
 
