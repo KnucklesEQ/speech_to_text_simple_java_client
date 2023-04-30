@@ -1,4 +1,4 @@
-package eu.nevian.speech_to_text_simple_java_client;
+package eu.nevian.speech_to_text_simple_java_client.transcriptionservice;
 
 import okhttp3.*;
 

@@ -3,6 +3,7 @@ package eu.nevian.speech_to_text_simple_java_client;
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
+import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.ApiService;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
 import org.apache.commons.cli.*;
 
