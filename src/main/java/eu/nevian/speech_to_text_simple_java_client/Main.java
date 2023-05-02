@@ -18,7 +18,7 @@ import java.util.Scanner;
 
 public class Main {
     private static final String API_KEY_FILE_PATH = "config.properties";
-    private static final int MAX_FILE_SIZE_IN_BYTES = 24 * 1024 * 1024; // 24 MB
+    private static final int MAX_FILE_SIZE_IN_BYTES = 20 * 1024 * 1024; // 24 MB
 
     public static void main(String[] args) {
         Options options = new Options();
@@ -30,6 +30,10 @@ public class Main {
         Option versionOption = new Option("v", "version", false, "Show version");
         versionOption.setArgName(" ");
         options.addOption(versionOption);
+
+        Option languageOption = new Option("l", "language", true, "Language of the audio file in ISO-639-1 format");
+        languageOption.setArgName("language");
+        options.addOption(languageOption);
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = null;
@@ -45,6 +49,15 @@ public class Main {
             if (cmd.hasOption("version")) {
                 System.out.println("Speech to Text Simple Java Client version " + getVersion());
                 System.exit(0);
+            }
+
+            if (cmd.hasOption("language")) {
+                String language = cmd.getOptionValue("language");
+                if (language.length() != 2) {
+                    System.err.println("Error: Invalid language code");
+                    printCustomHelp(options);
+                    System.exit(1);
+                }
             }
         } catch (ParseException e) {
             System.err.println("Error parsing command line arguments: " + e.getMessage());
