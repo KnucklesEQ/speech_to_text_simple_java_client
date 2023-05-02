@@ -11,10 +11,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-import java.util.Scanner;
+import java.util.*;
 
 public class Main {
     private static final String API_KEY_FILE_PATH = "config.properties";
@@ -54,7 +51,7 @@ public class Main {
 
             if (cmd.hasOption("language")) {
                 language = cmd.getOptionValue("language");
-                if (language.length() != 2) {
+                if (language.length() != 2 || languageIsNotSupported(language)) {
                     System.err.println("Error: Invalid language code");
                     printCustomHelp(options);
                     System.exit(1);
@@ -242,5 +239,13 @@ public class Main {
         for (Option option : options.getOptions()) {
             System.out.printf("  -%s,--%-10s  %s%n", option.getOpt(), option.getLongOpt(), option.getDescription());
         }
+    }
+
+    private static boolean languageIsNotSupported(String language) {
+        Set<String> supportedLanguages = new HashSet<>(Arrays.asList(
+                "af", "ar", "hy", "az", "be", "bs", "bg", "ca", "zh", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "gl", "de", "el", "he", "hi", "hu", "is", "id", "it", "ja", "kn", "kk", "ko", "lv", "lt", "mk", "ms", "mr", "mi", "ne", "no", "fa", "pl", "pt", "ro", "ru", "sr", "sk", "sl", "es", "sw", "sv", "tl", "ta", "th", "tr", "uk", "ur", "vi", "cy"
+        ));
+
+        return !supportedLanguages.contains(language);
     }
 }
