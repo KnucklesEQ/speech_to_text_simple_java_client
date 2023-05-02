@@ -22,6 +22,7 @@ public class Main {
 
     public static void main(String[] args) {
         Options options = new Options();
+        String language = "en";
 
         Option helpOption = new Option("h", "help", false, "Show help");
         helpOption.setArgName(" ");
@@ -52,7 +53,7 @@ public class Main {
             }
 
             if (cmd.hasOption("language")) {
-                String language = cmd.getOptionValue("language");
+                language = cmd.getOptionValue("language");
                 if (language.length() != 2) {
                     System.err.println("Error: Invalid language code");
                     printCustomHelp(options);
@@ -162,7 +163,7 @@ public class Main {
                 if (audioTranscription.length() > 0) {
                     audioTranscription.append("\n//\n");
                 }
-                audioTranscription.append(apiService.transcribeAudioFile(apiKey, af.getFilePath()));
+                audioTranscription.append(apiService.transcribeAudioFile(apiKey, language, af.getFilePath()));
             }
 
             TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");

@@ -13,7 +13,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * This class is responsible for making API calls to OpenAI API.
  */
 public class ApiService {
-    /** HTTP client used for making API calls. */
+    /**
+     * HTTP client used for making API calls.
+     */
     private final OkHttpClient httpClient;
 
     /**
@@ -65,7 +67,7 @@ public class ApiService {
      * @return Response body as a string with the content of the transcription.
      * @throws IOException If an error occurs while making the API call.
      */
-    public String transcribeAudioFile(String apiKey, String audioFilePath) throws IOException {
+    public String transcribeAudioFile(String apiKey, String language, String audioFilePath) throws IOException {
         final String url = "https://api.openai.com/v1/audio/transcriptions";
         final String model = "whisper-1";
 
@@ -76,10 +78,11 @@ public class ApiService {
 
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
-                .addFormDataPart("file", audioFile.getName(),
+                .addFormDataPart(
+                        "file", audioFile.getName(),
                         RequestBody.create(audioFile, MediaType.get("audio/mpeg")))
                 .addFormDataPart("model", model)
-                .addFormDataPart("language", "en")
+                .addFormDataPart("language", language)
                 .build();
 
         Request request = new Request.Builder()
