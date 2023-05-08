@@ -2,6 +2,8 @@ package eu.nevian.speech_to_text_simple_java_client;
 
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
+import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineManagement;
+import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineOptions;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.ApiService;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
@@ -15,66 +17,52 @@ import java.util.*;
 
 public class Main {
     private static final String API_KEY_FILE_PATH = "config.properties";
-    private static final int MAX_FILE_SIZE_IN_BYTES = 20 * 1024 * 1024; // 24 MB
+    private static final int MAX_FILE_SIZE_IN_BYTES = 20 * 1024 * 1024; // 20 MB
 
     public static void main(String[] args) {
-        Options options = new Options();
-        String language = "en";
-
-        Option helpOption = new Option("h", "help", false, "Show help");
-        helpOption.setArgName(" ");
-        options.addOption(helpOption);
-
-        Option versionOption = new Option("v", "version", false, "Show version");
-        versionOption.setArgName(" ");
-        options.addOption(versionOption);
-
-        Option languageOption = new Option("l", "language", true, "Language of the audio file in ISO-639-1 format");
-        languageOption.setArgName("language");
-        options.addOption(languageOption);
-
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cmd = null;
+        // Step 1: Parse command line arguments
+        CommandLineManagement commandLineManagement = new CommandLineManagement();
+        CommandLineOptions cmdOptions = null;
 
         try {
-            cmd = parser.parse(options, args);
-
-            if (cmd.hasOption("help")) {
-                printCustomHelp(options);
-                System.exit(0);
-            }
-
-            if (cmd.hasOption("version")) {
-                System.out.println("Speech to Text Simple Java Client version " + getVersion());
-                System.exit(0);
-            }
-
-            if (cmd.hasOption("language")) {
-                language = cmd.getOptionValue("language");
-                if (language.length() != 2 || languageIsNotSupported(language)) {
-                    System.err.println("Error: Invalid language code");
-                    printCustomHelp(options);
-                    System.exit(1);
-                }
-            }
+            cmdOptions = commandLineManagement.parseCommandLineArguments(args);
         } catch (ParseException e) {
             System.err.println("Error parsing command line arguments: " + e.getMessage());
             System.exit(1);
         }
 
-        // Get the remaining positional arguments
-        List<String> positionalArgs = cmd.getArgList();
+        if (cmdOptions.hasHelpOption()) {
+            cmdOptions.printCustomHelp();
+            System.exit(0);
+        }
 
-        // Check if the file path argument is provided
+        if (cmdOptions.hasVersionOption()) {
+            System.out.println("Speech to Text Simple Java Client version " + getVersion());
+            System.exit(0);
+        }
+
+        String language = cmdOptions.getLanguageOption();
+        if (language != null) {
+            if (language.length() != 2 || languageIsNotSupported(language)) {
+                System.err.println("Error: Invalid language code");
+                cmdOptions.printCustomHelp();
+                System.exit(1);
+            }
+        } else {
+            language = "en";
+        }
+
+        List<String> positionalArgs = cmdOptions.getRemainingArgs();
+
         if (positionalArgs.isEmpty()) {
             System.err.println("Error: Missing required file path argument");
-            printCustomHelp(options);
+            cmdOptions.printCustomHelp();
             System.exit(1);
         }
 
         System.out.println("Welcome!\n");
 
-        // Step 1: Load API key from file (config.properties)
+        // Step 2: Load API key from file (config.properties)
         final String apiKey = loadApiKey();
 
         AudioFile audioFile = new AudioFile();
@@ -229,16 +217,6 @@ public class Main {
     public static String getVersion() {
         String version = Main.class.getPackage().getImplementationVersion();
         return version != null ? version : "unknown";
-    }
-
-    private static void printCustomHelp(Options options) {
-        System.out.println("Usage:");
-        System.out.println("  java -jar speech_to_text_simple_java_client.jar [options] <FILE>");
-        System.out.println("\nOptions:");
-        System.out.printf("  %-2s %-8s  %s%n", "<FILE>", "", "Path to audio file or video file to transcribe");
-        for (Option option : options.getOptions()) {
-            System.out.printf("  -%s,--%-10s  %s%n", option.getOpt(), option.getLongOpt(), option.getDescription());
-        }
     }
 
     private static boolean languageIsNotSupported(String language) {
