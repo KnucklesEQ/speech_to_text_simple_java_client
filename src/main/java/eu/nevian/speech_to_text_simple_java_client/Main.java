@@ -27,7 +27,7 @@ public class Main {
         try {
             cmdOptions = commandLineManagement.parseCommandLineArguments(args);
         } catch (ParseException e) {
-            System.err.println("Error parsing command line arguments: " + e.getMessage());
+            System.err.println("Error parsing command line arguments. " + e.getMessage());
             System.exit(1);
         }
 
@@ -36,8 +36,9 @@ public class Main {
             System.exit(0);
         }
 
-        if (cmdOptions.hasVersionOption()) {
-            System.out.println("Speech to Text Simple Java Client version " + getVersion());
+        String version = cmdOptions.getVersionOption();
+        if (version != null) {
+            System.out.println("Speech to Text Simple Java Client version " + version);
             System.exit(0);
         }
 
@@ -49,7 +50,7 @@ public class Main {
                 System.exit(1);
             }
         } else {
-            language = "en";
+            language = "en"; // default language
         }
 
         List<String> positionalArgs = cmdOptions.getRemainingArgs();
@@ -212,11 +213,6 @@ public class Main {
         }
 
         return apiKey;
-    }
-
-    public static String getVersion() {
-        String version = Main.class.getPackage().getImplementationVersion();
-        return version != null ? version : "unknown";
     }
 
     private static boolean languageIsNotSupported(String language) {

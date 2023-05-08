@@ -1,5 +1,6 @@
 package eu.nevian.speech_to_text_simple_java_client.commandlinemanagement;
 
+import eu.nevian.speech_to_text_simple_java_client.Main;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
@@ -20,8 +21,13 @@ public class CommandLineOptions {
         return cmd.hasOption("help");
     }
 
-    public boolean hasVersionOption() {
-        return cmd.hasOption("version");
+    public String getVersionOption() {
+        if (cmd.hasOption("version")) {
+            String version = Main.class.getPackage().getImplementationVersion();
+            return version != null ? version : "unknown";
+        } else {
+            return null;
+        }
     }
 
     public String getLanguageOption() {
