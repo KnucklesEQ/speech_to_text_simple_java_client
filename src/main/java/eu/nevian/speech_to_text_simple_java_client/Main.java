@@ -72,9 +72,11 @@ public class Main {
         // Step 3: Check if the file exists and type
         try {
             System.out.println("Validating file...\n");
-            String fileType = AudioFileHelper.validateFileAndGetType(audioFile.getFilePath());
+            System.out.println(AudioFileHelper.validateFile(audioFile.getFilePath()));
+
+            String fileType = AudioFileHelper.GetFileType(audioFile.getFilePath());
             audioFile.setFileType(fileType);
-        } catch (AudioFileValidationException e) {
+        } catch (AudioFileValidationException | FileNotFoundException e) {
             System.err.println(e.getMessage());
             System.exit(1);
         }

@@ -2,11 +2,13 @@ package eu.nevian.speech_to_text_simple_java_client.audiofile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.nevian.speech_to_text_simple_java_client.utils.MessageManager;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 import eu.nevian.speech_to_text_simple_java_client.utils.FfmpegProcessHelper;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,16 +26,15 @@ public class AudioFileHelper {
     private AudioFileHelper() {
     }
 
-    public static String validateFileAndGetType(String filePath) throws AudioFileValidationException {
+    public static String validateFile(String filePath) throws FileNotFoundException {
         final Path path = Paths.get(filePath);
-
-        // Check if the file exists
-        if (!Files.exists(path)) {
-            throw new AudioFileValidationException("File not found: " + filePath);
+        if(!Files.exists(path)) {
+            throw new FileNotFoundException(MessageManager.getFileNotFoundMessage(filePath));
         }
+        return MessageManager.getFileFoundMessage(filePath);
+    }
 
-        System.out.println("File found at: " + filePath);
-
+    public static String GetFileType(String filePath) throws AudioFileValidationException {
         // Check the file type
         final Tika tika = new Tika();
 
