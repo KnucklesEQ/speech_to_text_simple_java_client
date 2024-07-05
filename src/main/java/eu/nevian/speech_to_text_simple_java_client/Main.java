@@ -5,12 +5,13 @@ import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineManagement;
 import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineOptions;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
+import eu.nevian.speech_to_text_simple_java_client.exceptions.LoadingConfigurationException;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.ApiService;
+import eu.nevian.speech_to_text_simple_java_client.utils.ConfigLoader;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
 import org.apache.commons.cli.*;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
@@ -64,7 +65,15 @@ public class Main {
         System.out.println("Welcome!\n");
 
         // Step 2: Load API key from file (config.properties)
-        final String apiKey = loadApiKey();
+        final String apiKey;
+
+        try {
+            apiKey = ConfigLoader.getApiKey(API_KEY_FILE_PATH);
+        } catch (LoadingConfigurationException | IOException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+            return;
+        }
 
         AudioFile audioFile = new AudioFile();
         audioFile.setFilePath(positionalArgs.get(0));
@@ -193,28 +202,6 @@ public class Main {
         } else {
             System.out.println("Transcription file will not be moved. You can find it at: " + new File("transcription.txt").getAbsolutePath());
         }
-    }
-
-    private static String loadApiKey() {
-        Properties properties = new Properties();
-
-        try (FileInputStream fileInputStream = new FileInputStream(API_KEY_FILE_PATH)) {
-            properties.load(fileInputStream);
-        } catch (FileNotFoundException e) {
-            System.err.println("Unable to find config.properties file.");
-            System.exit(1);
-        } catch (IOException e) {
-            System.err.println("Error reading config.properties file: " + e.getMessage());
-            System.exit(1);
-        }
-
-        String apiKey = properties.getProperty("api_key");
-        if (apiKey == null) {
-            System.err.println("API key not found in config.properties file.");
-            System.exit(1);
-        }
-
-        return apiKey;
     }
 
     private static boolean languageIsNotSupported(String language) {
