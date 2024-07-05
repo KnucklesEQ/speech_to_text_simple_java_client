@@ -39,6 +39,5 @@
 config.properties
 
 # Sample audio/video files
-*.mp3
 *.mp4
 *.mpga
