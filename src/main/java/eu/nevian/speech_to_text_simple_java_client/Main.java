@@ -7,6 +7,7 @@ import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.Command
 import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.LoadingConfigurationException;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.ApiService;
+import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.WhisperApiService;
 import eu.nevian.speech_to_text_simple_java_client.utils.ConfigLoader;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
 import org.apache.commons.cli.*;
@@ -144,11 +145,11 @@ public class Main {
         }
 
         // Step 8: It's time to call the API
-        ApiService apiService = new ApiService();
+        ApiService apiService = new WhisperApiService();
 
         try {
             System.out.println("\n###### Checking access to OpenAI API: Whisper model ######");
-            String responseText = apiService.checkWhisperOpenAiModel(apiKey);
+            String responseText = apiService.checkAiModelIsAvailable(apiKey);
             System.out.println("\nAPI Response: " + (!responseText.isEmpty()));
 
             System.out.println("\n###### Transcribe audio to text ######");
