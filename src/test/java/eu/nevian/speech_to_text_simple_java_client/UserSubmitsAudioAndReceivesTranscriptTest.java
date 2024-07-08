@@ -84,10 +84,12 @@ public class UserSubmitsAudioAndReceivesTranscriptTest {
         verify(mockClient).newCall(requestCaptor.capture());
         Request capturedRequest = requestCaptor.getValue();
 
+        // Verify the Request object has the valid attributes
         assertFalse(capturedRequest.url().toString().isEmpty());
         assertEquals("Bearer valid-api-key", capturedRequest.header("Authorization"));
         assertNotNull(capturedRequest.header("OpenAI-Organization"));
 
+        // Verify the Response
         assertNotNull(result);
         assertFalse(result.isEmpty());
     }
