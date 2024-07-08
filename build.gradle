@@ -54,6 +54,13 @@ dependencies {
     // JUnit 5 is used for unit testing
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.3'
     testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.10.3'
+
+    // Mockito is used to mock objects in unit tests
+    testImplementation 'org.mockito:mockito-core:5.12.0'
+
+    // This module contains the 'MockitoExtension' class that integrates Mockito with JUnit 5
+    testImplementation 'org.mockito:mockito-junit-jupiter:5.12.0'
+
 }
 
 test {
