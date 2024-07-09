@@ -19,9 +19,10 @@ import java.util.*;
 
 public class Main {
     private static final String API_KEY_FILE_PATH = "config.properties";
-    private static final int MAX_FILE_SIZE_IN_BYTES = 20 * 1024 * 1024; // 20 MB
 
     public static void main(String[] args) {
+
+        /*
         // Step 1: Parse command line arguments
         CommandLineManagement commandLineManagement = new CommandLineManagement();
         CommandLineOptions cmdOptions = null;
@@ -84,7 +85,7 @@ public class Main {
             System.out.println("Validating file...\n");
             System.out.println(AudioFileHelper.validateFile(audioFile.getFilePath()));
 
-            String fileType = AudioFileHelper.GetFileType(audioFile.getFilePath());
+            String fileType = AudioFileHelper.getFileType(audioFile.getFilePath());
             audioFile.setFileType(fileType);
         } catch (AudioFileValidationException | FileNotFoundException e) {
             System.err.println(e.getMessage());
@@ -113,7 +114,7 @@ public class Main {
         // Step 5: Get audio file duration and size
         try {
             audioFile.setDuration(AudioFileHelper.getAudioFileDuration(audioFile.getFilePath()));
-            audioFile.setFileSize(AudioFileHelper.getAudioFileSize(audioFile.getFilePath()));
+            audioFile.setFileSize(AudioFileHelper.getAudioFileSizeInBytes(audioFile.getFilePath()));
         } catch (IOException e) {
             System.err.println(e.getMessage());
             System.exit(1);
@@ -126,11 +127,11 @@ public class Main {
         final List<AudioFile> audioFileList = new ArrayList<>();
 
         try {
-            if (audioFile.getFileSize() > MAX_FILE_SIZE_IN_BYTES) {
+            if (audioFile.getFileSize() > max_file_size_in_bytes) {
                 System.out.println("\nFile is too big. Splitting it into smaller files...\n");
             }
 
-            audioFileList.addAll(AudioFileHelper.splitAudioFileBySize(audioFile, MAX_FILE_SIZE_IN_BYTES));
+            audioFileList.addAll(AudioFileHelper.splitAudioFileBySize(audioFile, max_file_size_in_bytes));
 
             // Step 7b: Print the info of the audio files split from the original one
             if (audioFileList.size() > 1) {
@@ -203,6 +204,8 @@ public class Main {
         } else {
             System.out.println("Transcription file will not be moved. You can find it at: " + new File("transcription.txt").getAbsolutePath());
         }
+
+     */
     }
 
     private static boolean languageIsNotSupported(String language) {

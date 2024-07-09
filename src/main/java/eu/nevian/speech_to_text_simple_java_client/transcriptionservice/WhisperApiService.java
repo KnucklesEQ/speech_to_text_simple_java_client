@@ -1,5 +1,6 @@
 package eu.nevian.speech_to_text_simple_java_client.transcriptionservice;
 
+import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
 import okhttp3.*;
 
 import java.io.File;
@@ -70,16 +71,13 @@ public class WhisperApiService implements ApiService{
         final String url = "https://api.openai.com/v1/audio/transcriptions";
         final String model = "whisper-1";
 
-        File audioFile = new File(audioFilePath);
-        if (!audioFile.exists()) {
-            throw new IOException("Audio file not found: " + audioFilePath);
-        }
+        File file = new File(audioFilePath);
 
         RequestBody requestBody = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart(
-                        "file", audioFile.getName(),
-                        RequestBody.create(audioFile, MediaType.get("audio/mpeg")))
+                        "file", file.getName(),
+                        RequestBody.create(file, MediaType.get("audio/mpeg")))
                 .addFormDataPart("model", model)
                 .addFormDataPart("language", language)
                 .build();

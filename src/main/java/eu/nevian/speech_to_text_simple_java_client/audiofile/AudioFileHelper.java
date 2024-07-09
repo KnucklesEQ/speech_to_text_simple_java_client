@@ -34,7 +34,7 @@ public class AudioFileHelper {
         return MessageManager.getFileFoundMessage(filePath);
     }
 
-    public static String GetFileType(String filePath) throws AudioFileValidationException {
+    public static String getFileType(String filePath) throws AudioFileValidationException {
         // Check the file type
         final Tika tika = new Tika();
 
@@ -122,7 +122,6 @@ public class AudioFileHelper {
         return durationNode.asDouble();
     }
 
-
     /**
      * Get the file size of a file in bytes.
      *
@@ -130,7 +129,7 @@ public class AudioFileHelper {
      * @return The file size in bytes.
      * @throws IOException If an error occurs while getting the file size.
      */
-    public static long getAudioFileSize(String filePath) throws IOException {
+    public static long getAudioFileSizeInBytes(String filePath) throws IOException {
         Path path = Paths.get(filePath);
         return Files.size(path);
     }

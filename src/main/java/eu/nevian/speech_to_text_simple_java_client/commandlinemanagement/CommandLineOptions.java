@@ -2,7 +2,6 @@ package eu.nevian.speech_to_text_simple_java_client.commandlinemanagement;
 
 import eu.nevian.speech_to_text_simple_java_client.Main;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 

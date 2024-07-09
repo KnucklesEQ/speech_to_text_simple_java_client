@@ -29,4 +29,21 @@ public class ConfigLoader {
 
         return apiKey;
     }
+
+    public static int getMaxFileSizeInBytes() throws IOException {
+        Properties properties = new Properties();
+
+        try (FileInputStream fileInputStream = new FileInputStream("config.properties")) {
+            properties.load(fileInputStream);
+        } catch (IOException e) {
+            throw new LoadingConfigurationException(MessageManager.getConfigFileNotFoundMessage());
+        }
+
+        String fileSizeString = properties.getProperty("audio_file_limit_size_in_bytes");
+        if (fileSizeString == null || fileSizeString.isEmpty()) {
+            throw new LoadingConfigurationException(MessageManager.getApiKeyNotFoundMessage());
+        }
+
+        return Integer.parseInt(fileSizeString.replace("_", ""));
+    }
 }
