@@ -4,7 +4,7 @@ import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.LoadingConfigurationException;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.WhisperApiService;
 import eu.nevian.speech_to_text_simple_java_client.utils.ConfigLoader;
-import eu.nevian.speech_to_text_simple_java_client.utils.MessageManager;
+import eu.nevian.speech_to_text_simple_java_client.utils.FileType;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
 import okhttp3.*;
 import okio.Buffer;
@@ -33,10 +33,8 @@ public class UserSubmitsAudioMp3FileAndReceivesTranscriptTest {
 
     @Test
     public void testUserSubmitsCorrectPathToAudioFile() {
-        String expectedMessage = MessageManager.getFileFoundMessage(AUDIO_FILE_MP3_PATH);
         try {
-            String actualMessage = AudioFileHelper.validateFile(AUDIO_FILE_MP3_PATH);
-            assertEquals(expectedMessage, actualMessage);
+            assertTrue(AudioFileHelper.validateFile(AUDIO_FILE_MP3_PATH));
         } catch (FileNotFoundException e) {
             fail("FileNotFound exception should not be thrown");
         }
@@ -44,7 +42,7 @@ public class UserSubmitsAudioMp3FileAndReceivesTranscriptTest {
 
     @Test
     public void testUserSubmitsCorrectAudioFileType() {
-        assertEquals("audio", AudioFileHelper.getFileType(AUDIO_FILE_MP3_PATH));
+        assertEquals(FileType.AUDIO, AudioFileHelper.getFileType(AUDIO_FILE_MP3_PATH));
     }
 
     @Test
@@ -184,6 +182,7 @@ public class UserSubmitsAudioMp3FileAndReceivesTranscriptTest {
 
         try {
             TextFileHelper.saveTranscriptionToFile(expectedContent, tempFile.toString());
+
             assertTrue(Files.exists(tempFile));
             String fileContent = Files.readString(tempFile);
             assertEquals(expectedContent, fileContent, "The content of the file should match the transcription");

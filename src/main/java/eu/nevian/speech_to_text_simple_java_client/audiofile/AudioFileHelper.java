@@ -2,8 +2,9 @@ package eu.nevian.speech_to_text_simple_java_client.audiofile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import eu.nevian.speech_to_text_simple_java_client.exceptions.FileValidationException;
+import eu.nevian.speech_to_text_simple_java_client.utils.FileType;
 import eu.nevian.speech_to_text_simple_java_client.utils.MessageManager;
-import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
 import eu.nevian.speech_to_text_simple_java_client.utils.FfmpegProcessHelper;
 import org.apache.tika.Tika;
 import org.apache.tika.mime.MediaType;
@@ -26,28 +27,26 @@ public class AudioFileHelper {
     private AudioFileHelper() {
     }
 
-    public static String validateFile(String filePath) throws FileNotFoundException {
+    public static boolean validateFile(String filePath) throws FileNotFoundException {
         final Path path = Paths.get(filePath);
         if(!Files.exists(path)) {
             throw new FileNotFoundException(MessageManager.getFileNotFoundMessage(filePath));
         }
-        return MessageManager.getFileFoundMessage(filePath);
+        return true;
     }
 
-    public static String getFileType(String filePath) throws AudioFileValidationException {
+    public static FileType getFileType(String filePath) throws FileValidationException {
         // Check the file type
         final Tika tika = new Tika();
+        final MediaType mediaType = MediaType.parse(tika.detect(filePath));
 
-        MediaType mediaType = MediaType.parse(tika.detect(filePath));
-        String fileType = mediaType.getType();
-
-        if (!fileType.equals("audio") && !fileType.equals("video")) {
-            throw new AudioFileValidationException("Invalid file type. Please provide an audio or video file.");
+        if (mediaType.getType().startsWith("audio")){
+            return FileType.AUDIO;
+        } else if (mediaType.getType().startsWith("video")){
+            return FileType.VIDEO;
+        } else {
+            throw new FileValidationException("Invalid file type. Please provide an audio or video file.");
         }
-
-        System.out.println("\nFile type validated: " + fileType + " file.");
-
-        return fileType;
     }
 
     /**
@@ -179,7 +178,7 @@ public class AudioFileHelper {
             // Create a new AudioFile object for the part
             AudioFile splitAudioFile = new AudioFile();
             splitAudioFile.setFilePath(outputFilePath);
-            splitAudioFile.setFileType("audio");
+            splitAudioFile.setFileType(FileType.AUDIO);
             splitAudioFile.setDuration(partDuration);
             splitAudioFile.setFileSize(Files.size(Paths.get(outputFilePath)));
 

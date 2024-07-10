@@ -4,15 +4,15 @@ import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineManagement;
 import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineOptions;
-import eu.nevian.speech_to_text_simple_java_client.exceptions.AudioFileValidationException;
-import eu.nevian.speech_to_text_simple_java_client.exceptions.LoadingConfigurationException;
+import eu.nevian.speech_to_text_simple_java_client.exceptions.FileValidationException;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.ApiService;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.WhisperApiService;
 import eu.nevian.speech_to_text_simple_java_client.utils.ConfigLoader;
+import eu.nevian.speech_to_text_simple_java_client.utils.FileType;
+import eu.nevian.speech_to_text_simple_java_client.utils.MessageManager;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
 import org.apache.commons.cli.*;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.*;
@@ -21,8 +21,6 @@ public class Main {
     private static final String API_KEY_FILE_PATH = "config.properties";
 
     public static void main(String[] args) {
-
-        /*
         // Step 1: Parse command line arguments
         CommandLineManagement commandLineManagement = new CommandLineManagement();
         CommandLineOptions cmdOptions = null;
@@ -33,6 +31,70 @@ public class Main {
             System.err.println("Error parsing command line arguments. " + e.getMessage());
             System.exit(1);
         }
+
+        List<String> positionalArgs = cmdOptions.getRemainingArgs();
+
+        if (positionalArgs.isEmpty()) {
+            System.err.println("Error: Missing required file path argument");
+            cmdOptions.printCustomHelp();
+            System.exit(1);
+        }
+
+        System.out.println("Welcome!\n");
+
+        AudioFile audioFile = new AudioFile();
+
+        // Step 2: Check if the file exists and type
+        try {
+            System.out.println("Validating file...\n");
+
+            if (AudioFileHelper.validateFile(positionalArgs.get(0))) {
+                audioFile.setFilePath(positionalArgs.get(0));
+                System.out.println(MessageManager.getFileFoundMessage(audioFile.getFilePath()));
+            }
+
+            FileType fileType = AudioFileHelper.getFileType(audioFile.getFilePath());
+            audioFile.setFileType(fileType);
+
+            System.out.println();
+            System.out.println(MessageManager.getFileTypeValidatedMessage(audioFile.getFileType().getType()));
+        } catch (FileValidationException | FileNotFoundException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
+
+        try {
+            audioFile.setFileSize(AudioFileHelper.getAudioFileSizeInBytes(audioFile.getFilePath()));
+
+            if (audioFile.getFileSize() <= ConfigLoader.getMaxFileSizeInBytes()) {
+                System.exit(1);
+            }
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+            System.exit(1);
+        }
+
+        // Step 8: It's time to call the API
+        ApiService apiService = new WhisperApiService();
+
+        try {
+            System.out.println("\n###### Checking access to OpenAI API: Whisper model ######");
+            String responseText = apiService.checkAiModelIsAvailable(ConfigLoader.getApiKey(API_KEY_FILE_PATH));
+            System.out.println("\nAPI Response: " + (!responseText.isEmpty()));
+
+            System.out.println("\n###### Transcribe audio to text ######");
+
+            String aux = apiService.transcribeAudioFile(ConfigLoader.getApiKey(API_KEY_FILE_PATH), "en", audioFile.getFilePath());
+
+            TextFileHelper.saveTranscriptionToFile(aux, "transcription.txt");
+            System.out.println("\n\nDONE!\n");
+        } catch (IOException e) {
+            System.err.println("Error fetching data from API: " + e.getMessage());
+            System.exit(1);
+        }
+
+        /*
+
 
         if (cmdOptions.hasHelpOption()) {
             cmdOptions.printCustomHelp();
@@ -56,15 +118,6 @@ public class Main {
             language = "en"; // default language
         }
 
-        List<String> positionalArgs = cmdOptions.getRemainingArgs();
-
-        if (positionalArgs.isEmpty()) {
-            System.err.println("Error: Missing required file path argument");
-            cmdOptions.printCustomHelp();
-            System.exit(1);
-        }
-
-        System.out.println("Welcome!\n");
 
         // Step 2: Load API key from file (config.properties)
         final String apiKey;
@@ -77,20 +130,7 @@ public class Main {
             return;
         }
 
-        AudioFile audioFile = new AudioFile();
-        audioFile.setFilePath(positionalArgs.get(0));
 
-        // Step 3: Check if the file exists and type
-        try {
-            System.out.println("Validating file...\n");
-            System.out.println(AudioFileHelper.validateFile(audioFile.getFilePath()));
-
-            String fileType = AudioFileHelper.getFileType(audioFile.getFilePath());
-            audioFile.setFileType(fileType);
-        } catch (AudioFileValidationException | FileNotFoundException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-        }
 
         // Step 4: If the file is a video, extract the audio from it
         if (audioFile.getFileType().equals("video")) {
