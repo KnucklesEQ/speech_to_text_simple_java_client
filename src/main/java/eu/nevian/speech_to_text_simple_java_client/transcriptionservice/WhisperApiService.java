@@ -44,6 +44,7 @@ public class WhisperApiService implements ApiService{
                 .url(url)
                 .addHeader("Authorization", "Bearer " + apiKey)
                 .addHeader("OpenAI-Organization", organization)
+                .get() // GET request
                 .build();
 
         try (Response response = ApiServiceHelper.performApiRequestWithAnimation(request, httpClient)) {
@@ -86,7 +87,7 @@ public class WhisperApiService implements ApiService{
                 .url(url)
                 .addHeader("Authorization", "Bearer " + apiKey)
                 .addHeader("Content-Type", "multipart/form-data")
-                .post(requestBody)
+                .post(requestBody) // POST request
                 .build();
 
         try (Response response = ApiServiceHelper.performApiRequestWithAnimation(request, httpClient)) {
