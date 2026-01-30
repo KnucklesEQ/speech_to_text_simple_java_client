@@ -4,6 +4,7 @@ import eu.nevian.speech_to_text_simple_java_client.exceptions.LoadingConfigurati
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 
@@ -45,5 +46,38 @@ public class ConfigLoader {
         }
 
         return Integer.parseInt(fileSizeString.replace("_", ""));
+    }
+
+    public static String getLanguage(String configFilePath) throws IOException {
+        Properties properties = new Properties();
+
+        try (FileInputStream fileInputStream = new FileInputStream(configFilePath)) {
+            properties.load(fileInputStream);
+        } catch (FileNotFoundException e) {
+            return null;
+        }
+
+        String language = properties.getProperty("language");
+        if (language == null || language.trim().isEmpty()) {
+            return null;
+        }
+
+        return language.trim();
+    }
+
+    public static void saveLanguage(String configFilePath, String language) throws IOException {
+        Properties properties = new Properties();
+
+        try (FileInputStream fileInputStream = new FileInputStream(configFilePath)) {
+            properties.load(fileInputStream);
+        } catch (FileNotFoundException e) {
+            // Create a new properties file if it does not exist.
+        }
+
+        properties.setProperty("language", language);
+
+        try (FileOutputStream fileOutputStream = new FileOutputStream(configFilePath)) {
+            properties.store(fileOutputStream, null);
+        }
     }
 }

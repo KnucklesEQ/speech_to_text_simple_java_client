@@ -9,6 +9,7 @@ import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.ApiServi
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.WhisperApiService;
 import eu.nevian.speech_to_text_simple_java_client.utils.ConfigLoader;
 import eu.nevian.speech_to_text_simple_java_client.utils.FileType;
+import eu.nevian.speech_to_text_simple_java_client.utils.LanguageSupport;
 import eu.nevian.speech_to_text_simple_java_client.utils.MessageManager;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
 import org.apache.commons.cli.*;
@@ -42,8 +43,46 @@ public class Main {
             System.exit(1);
         }
 
+        // Keep the original input path and track any extracted audio for cleanup.
         String originalInputPath = positionalArgs.get(0);
         String extractedAudioPath = null;
+
+        // Resolve language in order: CLI option -> config.properties -> LanguageSupport.DEFAULT_LANGUAGE.
+        String language = null;
+        String languageOption = cmdOptions.getLanguageOption();
+        if (languageOption != null) {
+            language = languageOption.trim().toLowerCase(Locale.ROOT);
+            if (language.length() != 2 || LanguageSupport.isNotSupported(language)) {
+                System.err.println("Error: Invalid language code");
+                cmdOptions.printCustomHelp();
+                System.exit(1);
+            }
+
+            try {
+                // Persist the CLI language for future runs.
+                ConfigLoader.saveLanguage(API_KEY_FILE_PATH, language);
+            } catch (IOException e) {
+                System.err.println("Warning: Failed to save language to config.properties: " + e.getMessage());
+            }
+        } else {
+            try {
+                language = ConfigLoader.getLanguage(API_KEY_FILE_PATH);
+            } catch (IOException e) {
+                System.err.println("Warning: Failed to read language from config.properties: " + e.getMessage());
+            }
+
+            if (language != null) {
+                String rawLanguage = language;
+                language = language.trim().toLowerCase(Locale.ROOT);
+                if (language.length() != 2 || LanguageSupport.isNotSupported(language)) {
+                    System.err.println("Warning: Invalid language in config.properties (" + rawLanguage
+                            + "). Falling back to \"" + LanguageSupport.DEFAULT_LANGUAGE + "\".");
+                    language = LanguageSupport.DEFAULT_LANGUAGE;
+                }
+            } else {
+                language = LanguageSupport.DEFAULT_LANGUAGE;
+            }
+        }
 
         System.out.println("Welcome!\n");
 
@@ -103,12 +142,13 @@ public class Main {
 
             System.out.println("\n###### Transcribe audio to text ######");
 
-            String aux = apiService.transcribeAudioFile(ConfigLoader.getApiKey(API_KEY_FILE_PATH), "en", audioFile.getFilePath());
+            String aux = apiService.transcribeAudioFile(ConfigLoader.getApiKey(API_KEY_FILE_PATH), language, audioFile.getFilePath());
 
             TextFileHelper.saveTranscriptionToFile(aux, "transcription.txt");
             System.out.println("\n\nDONE!\n");
 
             if (extractedAudioPath != null) {
+                // Remove the temporary audio extracted from video inputs.
                 try {
                     Files.deleteIfExists(Path.of(extractedAudioPath));
                 } catch (IOException e) {
@@ -136,13 +176,13 @@ public class Main {
 
         String language = cmdOptions.getLanguageOption();
         if (language != null) {
-            if (language.length() != 2 || languageIsNotSupported(language)) {
+            if (language.length() != 2 || LanguageSupport.isNotSupported(language)) {
                 System.err.println("Error: Invalid language code");
                 cmdOptions.printCustomHelp();
                 System.exit(1);
             }
         } else {
-            language = "en"; // default language
+                language = LanguageSupport.DEFAULT_LANGUAGE;
         }
 
 
@@ -275,11 +315,4 @@ public class Main {
      */
     }
 
-    private static boolean languageIsNotSupported(String language) {
-        Set<String> supportedLanguages = new HashSet<>(Arrays.asList(
-                "af", "ar", "hy", "az", "be", "bs", "bg", "ca", "zh", "hr", "cs", "da", "nl", "en", "et", "fi", "fr", "gl", "de", "el", "he", "hi", "hu", "is", "id", "it", "ja", "kn", "kk", "ko", "lv", "lt", "mk", "ms", "mr", "mi", "ne", "no", "fa", "pl", "pt", "ro", "ru", "sr", "sk", "sl", "es", "sw", "sv", "tl", "ta", "th", "tr", "uk", "ur", "vi", "cy"
-        ));
-
-        return !supportedLanguages.contains(language);
-    }
 }
