@@ -15,6 +15,8 @@ import org.apache.commons.cli.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 public class Main {
@@ -40,6 +42,9 @@ public class Main {
             System.exit(1);
         }
 
+        String originalInputPath = positionalArgs.get(0);
+        String extractedAudioPath = null;
+
         System.out.println("Welcome!\n");
 
         AudioFile audioFile = new AudioFile();
@@ -48,8 +53,8 @@ public class Main {
         try {
             System.out.println("Validating file...\n");
 
-            if (AudioFileHelper.validateFile(positionalArgs.get(0))) {
-                audioFile.setFilePath(positionalArgs.get(0));
+            if (AudioFileHelper.validateFile(originalInputPath)) {
+                audioFile.setFilePath(originalInputPath);
                 System.out.println(MessageManager.getFileFoundMessage(audioFile.getFilePath()));
             }
 
@@ -61,6 +66,20 @@ public class Main {
         } catch (FileValidationException | FileNotFoundException e) {
             System.err.println(e.getMessage());
             System.exit(1);
+        }
+
+        if (audioFile.getFileType() == FileType.VIDEO) {
+            try {
+                System.out.println("\nVideo detected. Extracting audio...\n");
+                String audioFilePath = AudioFileHelper.extractAudioFromVideo(audioFile.getFilePath());
+                extractedAudioPath = audioFilePath;
+                audioFile.setFilePath(audioFilePath);
+                audioFile.setFileType(FileType.AUDIO);
+                System.out.println("Audio extracted to: " + audioFile.getFilePath());
+            } catch (IOException e) {
+                System.err.println("Error extracting audio from video: " + e.getMessage());
+                System.exit(1);
+            }
         }
 
         try {
@@ -88,6 +107,14 @@ public class Main {
 
             TextFileHelper.saveTranscriptionToFile(aux, "transcription.txt");
             System.out.println("\n\nDONE!\n");
+
+            if (extractedAudioPath != null) {
+                try {
+                    Files.deleteIfExists(Path.of(extractedAudioPath));
+                } catch (IOException e) {
+                    System.err.println("Warning: Failed to delete extracted audio file: " + e.getMessage());
+                }
+            }
         } catch (IOException e) {
             System.err.println("Error fetching data from API: " + e.getMessage());
             System.exit(1);

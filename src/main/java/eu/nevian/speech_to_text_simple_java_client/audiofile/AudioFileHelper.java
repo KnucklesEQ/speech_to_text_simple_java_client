@@ -50,8 +50,8 @@ public class AudioFileHelper {
     }
 
     /**
-     * Extract the audio from a video file. The audio extracted is saved in the same directory as the video file in a
-     * file with the same name as the video file but with the .mp3 extension.
+     * Extract the audio from a video file. The audio extracted is saved in the same directory as the video file with
+     * a timestamp suffix to avoid overwriting an existing .mp3 file.
      *
      * @param videoFilePath The path to the video file
      * @return The path to the extracted audio file
@@ -65,7 +65,12 @@ public class AudioFileHelper {
 
         System.out.println("Extracting audio from video file...");
 
-        String audioFilePath = videoFilePath.replaceFirst("[.][^.]+$", "") + ".mp3";
+        String basePath = videoFilePath.replaceFirst("[.][^.]+$", "");
+        String audioFilePath = basePath + "_" + System.currentTimeMillis() + ".mp3";
+        // Retry if a file with the same timestamp already exists (VERY RARE).
+        while (Files.exists(Paths.get(audioFilePath))) {
+            audioFilePath = basePath + "_" + System.currentTimeMillis() + ".mp3";
+        }
 
         ProcessBuilder processBuilder = FfmpegProcessHelper.createExtractAudioProcessBuilder(videoFilePath, audioFilePath);
         Process process = processBuilder.start();
