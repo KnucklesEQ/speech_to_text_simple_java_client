@@ -59,14 +59,15 @@ public class AudioFileHelper {
     }
 
     /**
-     * Extract the audio from a video file. The audio extracted is saved in the same directory as the video file with
-     * a timestamp suffix to avoid overwriting an existing .mp3 file.
+     * Extract the audio from a video file. The audio extracted is saved in the temporary workspace with a timestamp
+     * suffix to avoid overwriting an existing .mp3 file.
      *
      * @param videoFilePath The path to the video file
+     * @param temporaryWorkspace Temporary directory for generated files
      * @return The path to the extracted audio file
      * @throws IOException If ffmpeg is not available on the system or if the process was interrupted
      */
-    public static String extractAudioFromVideo(String videoFilePath) throws IOException {
+    public static String extractAudioFromVideo(String videoFilePath, Path temporaryWorkspace) throws IOException {
         if (FfmpegProcessHelper.isFfmpegNotAvailable()) {
             throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install " +
                     "ffmpeg' on your Linux distribution.");
@@ -74,11 +75,11 @@ public class AudioFileHelper {
 
         System.out.println("Extracting audio from video file...");
 
-        String basePath = videoFilePath.replaceFirst("[.][^.]+$", "");
-        String audioFilePath = basePath + "_" + System.currentTimeMillis() + ".mp3";
+        String baseName = getFileNameWithoutExtension(videoFilePath);
+        String audioFilePath = temporaryWorkspace.resolve(baseName + "_" + System.currentTimeMillis() + ".mp3").toString();
         // Retry if a file with the same timestamp already exists (VERY RARE).
         while (Files.exists(Paths.get(audioFilePath))) {
-            audioFilePath = basePath + "_" + System.currentTimeMillis() + ".mp3";
+            audioFilePath = temporaryWorkspace.resolve(baseName + "_" + System.currentTimeMillis() + ".mp3").toString();
         }
 
         ProcessBuilder processBuilder = FfmpegProcessHelper.createExtractAudioProcessBuilder(videoFilePath, audioFilePath);
@@ -106,8 +107,8 @@ public class AudioFileHelper {
      * @throws IOException If an error occurs while getting the duration of the audio file.
      */
     public static double getAudioFileDuration(String audioFilePath) throws IOException {
-        if (FfmpegProcessHelper.isFfmpegNotAvailable()) {
-            throw new IOException("ffmpeg is not available on this system. You can install it with 'sudo apt install ffmpeg' on your Linux distribution.");
+        if (FfmpegProcessHelper.isFfprobeNotAvailable()) {
+            throw new IOException("ffprobe is not available on this system. You can install it with 'sudo apt install ffmpeg' on your Linux distribution.");
         }
 
         ProcessBuilder processBuilder = FfmpegProcessHelper.createGetAudioDurationProcessBuilder(audioFilePath);
@@ -116,11 +117,11 @@ public class AudioFileHelper {
         try {
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                throw new IOException("Error getting video duration: ffprobe exit code " + exitCode);
+                throw new IOException("Error getting audio duration: ffprobe exit code " + exitCode);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IOException("Error getting video duration: ffprobe process was interrupted", e);
+            throw new IOException("Error getting audio duration: ffprobe process was interrupted", e);
         }
 
         // Read the output of the ffprobe command
@@ -129,7 +130,7 @@ public class AudioFileHelper {
         JsonNode durationNode = rootNode.path("format").path("duration");
 
         if (durationNode.isMissingNode()) {
-            throw new IOException("Error getting video duration: Duration not found in ffprobe output");
+            throw new IOException("Error getting audio duration: Duration not found in ffprobe output");
         }
 
         return durationNode.asDouble();
@@ -153,10 +154,11 @@ public class AudioFileHelper {
      *
      * @param audioFile      The audio file to split.
      * @param maxSizeInBytes The maximum size of each part in bytes.
+     * @param temporaryWorkspace Temporary directory for generated files.
      * @return A list of audio files, each one with a maximum size of maxSizeInBytes.
      * @throws IOException If an error occurs while splitting the audio file.
      */
-    public static List<AudioFile> splitAudioFileBySize(AudioFile audioFile, long maxSizeInBytes) throws IOException {
+    public static List<AudioFile> splitAudioFileBySize(AudioFile audioFile, long maxSizeInBytes, Path temporaryWorkspace) throws IOException {
         List<AudioFile> splitFiles = new ArrayList<>();
         List<Path> generatedPaths = new ArrayList<>();
 
@@ -173,9 +175,10 @@ public class AudioFileHelper {
 
         // Split the audio file into parts
         try {
+            String baseName = getFileNameWithoutExtension(audioFile.getFilePath());
             for (int i = 0; i < numberOfParts; i++) {
                 double startTime = i * partDuration;
-                String outputFilePath = audioFile.getFilePath().replaceFirst("[.][^.]+$", "") + "-part" + (i + 1) + ".mp3";
+                String outputFilePath = temporaryWorkspace.resolve(baseName + "-part" + (i + 1) + ".mp3").toString();
                 Path outputPath = Paths.get(outputFilePath);
                 generatedPaths.add(outputPath);
 
@@ -217,5 +220,10 @@ public class AudioFileHelper {
             } catch (IOException ignored) {
             }
         }
+    }
+
+    private static String getFileNameWithoutExtension(String filePath) {
+        String fileName = Paths.get(filePath).getFileName().toString();
+        return fileName.replaceFirst("[.][^.]+$", "");
     }
 }

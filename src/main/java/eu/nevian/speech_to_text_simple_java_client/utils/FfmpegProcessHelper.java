@@ -27,7 +27,15 @@ public class FfmpegProcessHelper {
      * @return True if ffmpeg is NOT available, false otherwise.
      */
     public static boolean isFfmpegNotAvailable() {
-        ProcessBuilder processBuilder = new ProcessBuilder("ffmpeg", "-version");
+        return isCommandNotAvailable("ffmpeg");
+    }
+
+    public static boolean isFfprobeNotAvailable() {
+        return isCommandNotAvailable("ffprobe");
+    }
+
+    private static boolean isCommandNotAvailable(String commandName) {
+        ProcessBuilder processBuilder = new ProcessBuilder(commandName, "-version");
         try {
             Process process = processBuilder.start();
             int exitCode = process.waitFor();

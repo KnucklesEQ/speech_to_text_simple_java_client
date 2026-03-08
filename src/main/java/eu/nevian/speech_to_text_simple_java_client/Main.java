@@ -10,14 +10,15 @@ import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.ApiServi
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.WhisperApiService;
 import eu.nevian.speech_to_text_simple_java_client.utils.ConfigLoader;
 import eu.nevian.speech_to_text_simple_java_client.utils.FileType;
+import eu.nevian.speech_to_text_simple_java_client.utils.FfmpegProcessHelper;
 import eu.nevian.speech_to_text_simple_java_client.utils.LanguageSupport;
 import eu.nevian.speech_to_text_simple_java_client.utils.MessageManager;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
+import eu.nevian.speech_to_text_simple_java_client.utils.TemporaryWorkspaceHelper;
 import org.apache.commons.cli.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -25,6 +26,10 @@ public class Main {
     private static final String CONFIG_FILE_PATH = "config.properties";
 
     public static void main(String[] args) {
+        System.exit(run(args));
+    }
+
+    private static int run(String[] args) {
         // Step 1: Parse command line arguments
         CommandLineManagement commandLineManagement = new CommandLineManagement();
         CommandLineOptions cmdOptions = null;
@@ -33,18 +38,18 @@ public class Main {
             cmdOptions = commandLineManagement.parseCommandLineArguments(args);
         } catch (ParseException e) {
             System.err.println("Error parsing command line arguments. " + e.getMessage());
-            System.exit(1);
+            return 1;
         }
 
         if (cmdOptions.hasHelpOption()) {
             cmdOptions.printCustomHelp();
-            System.exit(0);
+            return 0;
         }
 
         String version = cmdOptions.getVersionOption();
         if (version != null) {
             System.out.println("Speech to Text Simple Java Client version " + version);
-            System.exit(0);
+            return 0;
         }
 
         List<String> positionalArgs = cmdOptions.getRemainingArgs();
@@ -52,16 +57,16 @@ public class Main {
         if (positionalArgs.isEmpty()) {
             System.err.println("Error: Missing required file path argument");
             cmdOptions.printCustomHelp();
-            System.exit(1);
+            return 1;
         }
 
         if (positionalArgs.size() > 1) {
             System.err.println("Error: Too many file path arguments. Expected exactly one <FILE>.");
             cmdOptions.printCustomHelp();
-            System.exit(1);
+            return 1;
         }
 
-        // Keep the original input path and track any extracted audio for cleanup.
+        // Keep the original input path.
         String originalInputPath = positionalArgs.get(0);
         // Resolve language in order: CLI option -> config.properties -> LanguageSupport.DEFAULT_LANGUAGE.
         String language = null;
@@ -71,7 +76,7 @@ public class Main {
             if (language.length() != 2 || LanguageSupport.isNotSupported(language)) {
                 System.err.println("Error: Invalid language code");
                 cmdOptions.printCustomHelp();
-                System.exit(1);
+                return 1;
             }
 
             try {
@@ -100,11 +105,20 @@ public class Main {
             }
         }
 
+        if (FfmpegProcessHelper.isFfmpegNotAvailable()) {
+            System.err.println("Error: ffmpeg is not available on this system. Please install it and ensure it is available on PATH.");
+            return 1;
+        }
+
+        if (FfmpegProcessHelper.isFfprobeNotAvailable()) {
+            System.err.println("Error: ffprobe is not available on this system. Please install it and ensure it is available on PATH.");
+            return 1;
+        }
+
         System.out.println("Welcome!\n");
 
         AudioFile audioFile = new AudioFile();
         List<AudioFile> audioFileList = new ArrayList<>();
-        List<String> temporaryFilePaths = new ArrayList<>();
 
         // Step 2: Check if the file exists and type
         try {
@@ -122,80 +136,81 @@ public class Main {
             System.out.println(MessageManager.getFileTypeValidatedMessage(audioFile.getFileType().getType()));
         } catch (FileValidationException | FileNotFoundException e) {
             System.err.println(e.getMessage());
-            System.exit(1);
+            return 1;
         }
 
-        // Step 3: If the file is a video, extract the audio from it
-        if (audioFile.getFileType() == FileType.VIDEO) {
-            try {
-                System.out.println("\nVideo detected. Extracting audio...\n");
-                String audioFilePath = AudioFileHelper.extractAudioFromVideo(audioFile.getFilePath());
-                temporaryFilePaths.add(audioFilePath);
-                audioFile.setFilePath(audioFilePath);
-                audioFile.setFileType(FileType.AUDIO);
-                System.out.println("Audio extracted to: " + audioFile.getFilePath());
-            } catch (IOException e) {
-                System.err.println("Error extracting audio from video: " + e.getMessage());
-                System.exit(1);
-            }
-        }
+        try (TemporaryWorkspaceHelper temporaryWorkspace = TemporaryWorkspaceHelper.createTemporaryWorkspace()) {
+            Path temporaryWorkspacePath = temporaryWorkspace.getWorkspacePath();
 
-        // Step 4: Get audio file duration and size
-        try {
-            audioFile.setDuration(AudioFileHelper.getAudioFileDuration(audioFile.getFilePath()));
-            audioFile.setFileSize(AudioFileHelper.getAudioFileSizeInBytes(audioFile.getFilePath()));
-            System.out.println(audioFile);
-
-            // Step 5: Split the audio file if it is too big
-            long maxFileSizeInBytes = ConfigLoader.getMaxFileSizeInBytes();
-            if (audioFile.getFileSize() > maxFileSizeInBytes) {
-                System.out.println("\nFile is too big. Splitting it into smaller files...\n");
-            }
-
-            audioFileList.addAll(AudioFileHelper.splitAudioFileBySize(audioFile, maxFileSizeInBytes));
-
-            if (audioFileList.size() > 1) {
-                System.out.println("Audio split into " + audioFileList.size() + " smaller files:");
-                for (AudioFile af : audioFileList) {
-                    System.out.println(af);
-                    temporaryFilePaths.add(af.getFilePath());
+            // Step 3: If the file is a video, extract the audio from it
+            if (audioFile.getFileType() == FileType.VIDEO) {
+                try {
+                    System.out.println("\nVideo detected. Extracting audio...\n");
+                    String audioFilePath = AudioFileHelper.extractAudioFromVideo(audioFile.getFilePath(), temporaryWorkspacePath);
+                    audioFile.setFilePath(audioFilePath);
+                    audioFile.setFileType(FileType.AUDIO);
+                    System.out.println("Audio extracted to: " + audioFile.getFilePath());
+                } catch (IOException e) {
+                    System.err.println("Error extracting audio from video: " + e.getMessage());
+                    return 1;
                 }
+            }
+
+            // Step 4: Get audio file duration and size
+            try {
+                audioFile.setDuration(AudioFileHelper.getAudioFileDuration(audioFile.getFilePath()));
+                audioFile.setFileSize(AudioFileHelper.getAudioFileSizeInBytes(audioFile.getFilePath()));
+                System.out.println(audioFile);
+
+                // Step 5: Split the audio file if it is too big
+                long maxFileSizeInBytes = ConfigLoader.getMaxFileSizeInBytes();
+                if (audioFile.getFileSize() > maxFileSizeInBytes) {
+                    System.out.println("\nFile is too big. Splitting it into smaller files...\n");
+                }
+
+                audioFileList.addAll(AudioFileHelper.splitAudioFileBySize(audioFile, maxFileSizeInBytes, temporaryWorkspacePath));
+
+                if (audioFileList.size() > 1) {
+                    System.out.println("Audio split into " + audioFileList.size() + " smaller files:");
+                    for (AudioFile af : audioFileList) {
+                        System.out.println(af);
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println(e.getMessage());
+                return 1;
+            }
+
+            // Step 8: It's time to call the API
+            ApiService apiService = new WhisperApiService();
+
+            try {
+                String apiKey = ConfigLoader.getApiKey(CONFIG_FILE_PATH);
+
+                System.out.println("\n###### Checking access to OpenAI API: Whisper model ######");
+                String responseText = apiService.checkAiModelIsAvailable(apiKey);
+                System.out.println("\nAPI Response: " + (!responseText.isEmpty()));
+
+                System.out.println("\n###### Transcribe audio to text ######");
+
+                StringBuilder audioTranscription = new StringBuilder();
+                for (AudioFile af : audioFileList) {
+                    if (!audioTranscription.isEmpty()) {
+                        audioTranscription.append("\n//\n");
+                    }
+                    audioTranscription.append(apiService.transcribeAudioFile(apiKey, language, af.getFilePath()));
+                }
+
+                TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");
+                System.out.println("\n\nDONE!\n");
+            } catch (IOException | LoadingConfigurationException e) {
+                System.err.println("Error fetching data from API: " + e.getMessage());
+                return 1;
             }
         } catch (IOException e) {
-            deleteTemporaryFiles(temporaryFilePaths);
-            System.err.println(e.getMessage());
-            System.exit(1);
+            System.err.println("Error creating temporary workspace: " + e.getMessage());
+            return 1;
         }
-
-        // Step 8: It's time to call the API
-        ApiService apiService = new WhisperApiService();
-
-        try {
-            String apiKey = ConfigLoader.getApiKey(CONFIG_FILE_PATH);
-
-            System.out.println("\n###### Checking access to OpenAI API: Whisper model ######");
-            String responseText = apiService.checkAiModelIsAvailable(apiKey);
-            System.out.println("\nAPI Response: " + (!responseText.isEmpty()));
-
-            System.out.println("\n###### Transcribe audio to text ######");
-
-            StringBuilder audioTranscription = new StringBuilder();
-            for (AudioFile af : audioFileList) {
-                if (!audioTranscription.isEmpty()) {
-                    audioTranscription.append("\n//\n");
-                }
-                audioTranscription.append(apiService.transcribeAudioFile(apiKey, language, af.getFilePath()));
-            }
-
-            TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");
-            System.out.println("\n\nDONE!\n");
-        } catch (IOException | LoadingConfigurationException e) {
-            System.err.println("Error fetching data from API: " + e.getMessage());
-            deleteTemporaryFiles(temporaryFilePaths);
-            System.exit(1);
-        }
-
-        deleteTemporaryFiles(temporaryFilePaths);
 
         /*
         // Step 3: Load API key from file (config.properties)
@@ -295,16 +310,8 @@ public class Main {
         }
 
      */
-    }
 
-    private static void deleteTemporaryFiles(List<String> temporaryFilePaths) {
-        for (String temporaryFilePath : temporaryFilePaths) {
-            try {
-                Files.deleteIfExists(Path.of(temporaryFilePath));
-            } catch (IOException e) {
-                System.err.println("Warning: Failed to delete temporary file: " + e.getMessage());
-            }
-        }
+        return 0;
     }
 
 }
