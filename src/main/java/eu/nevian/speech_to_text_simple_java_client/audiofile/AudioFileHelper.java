@@ -32,6 +32,15 @@ public class AudioFileHelper {
         if(!Files.exists(path)) {
             throw new FileNotFoundException(MessageManager.getFileNotFoundMessage(filePath));
         }
+
+        if (!Files.isRegularFile(path)) {
+            throw new FileValidationException(MessageManager.getFileNotRegularMessage(filePath));
+        }
+
+        if (!Files.isReadable(path)) {
+            throw new FileValidationException(MessageManager.getFileNotReadableMessage(filePath));
+        }
+
         return true;
     }
 
@@ -149,6 +158,7 @@ public class AudioFileHelper {
      */
     public static List<AudioFile> splitAudioFileBySize(AudioFile audioFile, long maxSizeInBytes) throws IOException {
         List<AudioFile> splitFiles = new ArrayList<>();
+        List<Path> generatedPaths = new ArrayList<>();
 
         if (audioFile.getFileSize() <= maxSizeInBytes) {
             splitFiles.add(audioFile);
@@ -162,34 +172,50 @@ public class AudioFileHelper {
         double partDuration = audioFile.getDuration() / numberOfParts;
 
         // Split the audio file into parts
-        for (int i = 0; i < numberOfParts; i++) {
-            double startTime = i * partDuration;
-            String outputFilePath = audioFile.getFilePath().replaceFirst("[.][^.]+$", "") + "-part" + (i + 1) + ".mp3";
+        try {
+            for (int i = 0; i < numberOfParts; i++) {
+                double startTime = i * partDuration;
+                String outputFilePath = audioFile.getFilePath().replaceFirst("[.][^.]+$", "") + "-part" + (i + 1) + ".mp3";
+                Path outputPath = Paths.get(outputFilePath);
+                generatedPaths.add(outputPath);
 
-            ProcessBuilder processBuilder = FfmpegProcessHelper.createCutAudioProcessBuilder(
-                    audioFile.getFilePath(), outputFilePath, startTime, partDuration);
-            Process process = processBuilder.start();
+                ProcessBuilder processBuilder = FfmpegProcessHelper.createCutAudioProcessBuilder(
+                        audioFile.getFilePath(), outputFilePath, startTime, partDuration);
+                Process process = processBuilder.start();
 
-            try {
-                int exitCode = process.waitFor();
-                if (exitCode != 0) {
-                    throw new IOException("Error splitting audio file: ffmpeg exit code " + exitCode);
+                try {
+                    int exitCode = process.waitFor();
+                    if (exitCode != 0) {
+                        throw new IOException("Error splitting audio file: ffmpeg exit code " + exitCode);
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new IOException("Error splitting audio file: ffmpeg process was interrupted", e);
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IOException("Error splitting audio file: ffmpeg process was interrupted", e);
+
+                // Create a new AudioFile object for the part
+                AudioFile splitAudioFile = new AudioFile();
+                splitAudioFile.setFilePath(outputFilePath);
+                splitAudioFile.setFileType(FileType.AUDIO);
+                splitAudioFile.setDuration(partDuration);
+                splitAudioFile.setFileSize(Files.size(outputPath));
+
+                splitFiles.add(splitAudioFile);
             }
-
-            // Create a new AudioFile object for the part
-            AudioFile splitAudioFile = new AudioFile();
-            splitAudioFile.setFilePath(outputFilePath);
-            splitAudioFile.setFileType(FileType.AUDIO);
-            splitAudioFile.setDuration(partDuration);
-            splitAudioFile.setFileSize(Files.size(Paths.get(outputFilePath)));
-
-            splitFiles.add(splitAudioFile);
+        } catch (IOException e) {
+            deleteGeneratedFiles(generatedPaths);
+            throw e;
         }
 
         return splitFiles;
+    }
+
+    private static void deleteGeneratedFiles(List<Path> generatedPaths) {
+        for (Path generatedPath : generatedPaths) {
+            try {
+                Files.deleteIfExists(generatedPath);
+            } catch (IOException ignored) {
+            }
+        }
     }
 }

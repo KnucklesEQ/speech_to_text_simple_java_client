@@ -5,6 +5,7 @@ import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineManagement;
 import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineOptions;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.FileValidationException;
+import eu.nevian.speech_to_text_simple_java_client.exceptions.LoadingConfigurationException;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.ApiService;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.WhisperApiService;
 import eu.nevian.speech_to_text_simple_java_client.utils.ConfigLoader;
@@ -62,8 +63,6 @@ public class Main {
 
         // Keep the original input path and track any extracted audio for cleanup.
         String originalInputPath = positionalArgs.get(0);
-        String extractedAudioPath = null;
-
         // Resolve language in order: CLI option -> config.properties -> LanguageSupport.DEFAULT_LANGUAGE.
         String language = null;
         String languageOption = cmdOptions.getLanguageOption();
@@ -104,6 +103,8 @@ public class Main {
         System.out.println("Welcome!\n");
 
         AudioFile audioFile = new AudioFile();
+        List<AudioFile> audioFileList = new ArrayList<>();
+        List<String> temporaryFilePaths = new ArrayList<>();
 
         // Step 2: Check if the file exists and type
         try {
@@ -124,11 +125,12 @@ public class Main {
             System.exit(1);
         }
 
+        // Step 3: If the file is a video, extract the audio from it
         if (audioFile.getFileType() == FileType.VIDEO) {
             try {
                 System.out.println("\nVideo detected. Extracting audio...\n");
                 String audioFilePath = AudioFileHelper.extractAudioFromVideo(audioFile.getFilePath());
-                extractedAudioPath = audioFilePath;
+                temporaryFilePaths.add(audioFilePath);
                 audioFile.setFilePath(audioFilePath);
                 audioFile.setFileType(FileType.AUDIO);
                 System.out.println("Audio extracted to: " + audioFile.getFilePath());
@@ -138,13 +140,29 @@ public class Main {
             }
         }
 
+        // Step 4: Get audio file duration and size
         try {
+            audioFile.setDuration(AudioFileHelper.getAudioFileDuration(audioFile.getFilePath()));
             audioFile.setFileSize(AudioFileHelper.getAudioFileSizeInBytes(audioFile.getFilePath()));
+            System.out.println(audioFile);
 
-            if (audioFile.getFileSize() <= ConfigLoader.getMaxFileSizeInBytes()) {
-                System.exit(1);
+            // Step 5: Split the audio file if it is too big
+            long maxFileSizeInBytes = ConfigLoader.getMaxFileSizeInBytes();
+            if (audioFile.getFileSize() > maxFileSizeInBytes) {
+                System.out.println("\nFile is too big. Splitting it into smaller files...\n");
+            }
+
+            audioFileList.addAll(AudioFileHelper.splitAudioFileBySize(audioFile, maxFileSizeInBytes));
+
+            if (audioFileList.size() > 1) {
+                System.out.println("Audio split into " + audioFileList.size() + " smaller files:");
+                for (AudioFile af : audioFileList) {
+                    System.out.println(af);
+                    temporaryFilePaths.add(af.getFilePath());
+                }
             }
         } catch (IOException e) {
+            deleteTemporaryFiles(temporaryFilePaths);
             System.err.println(e.getMessage());
             System.exit(1);
         }
@@ -153,29 +171,31 @@ public class Main {
         ApiService apiService = new WhisperApiService();
 
         try {
+            String apiKey = ConfigLoader.getApiKey(CONFIG_FILE_PATH);
+
             System.out.println("\n###### Checking access to OpenAI API: Whisper model ######");
-            String responseText = apiService.checkAiModelIsAvailable(ConfigLoader.getApiKey(CONFIG_FILE_PATH));
+            String responseText = apiService.checkAiModelIsAvailable(apiKey);
             System.out.println("\nAPI Response: " + (!responseText.isEmpty()));
 
             System.out.println("\n###### Transcribe audio to text ######");
 
-            String aux = apiService.transcribeAudioFile(ConfigLoader.getApiKey(CONFIG_FILE_PATH), language, audioFile.getFilePath());
-
-            TextFileHelper.saveTranscriptionToFile(aux, "transcription.txt");
-            System.out.println("\n\nDONE!\n");
-
-            if (extractedAudioPath != null) {
-                // Remove the temporary audio extracted from video inputs.
-                try {
-                    Files.deleteIfExists(Path.of(extractedAudioPath));
-                } catch (IOException e) {
-                    System.err.println("Warning: Failed to delete extracted audio file: " + e.getMessage());
+            StringBuilder audioTranscription = new StringBuilder();
+            for (AudioFile af : audioFileList) {
+                if (!audioTranscription.isEmpty()) {
+                    audioTranscription.append("\n//\n");
                 }
+                audioTranscription.append(apiService.transcribeAudioFile(apiKey, language, af.getFilePath()));
             }
-        } catch (IOException e) {
+
+            TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");
+            System.out.println("\n\nDONE!\n");
+        } catch (IOException | LoadingConfigurationException e) {
             System.err.println("Error fetching data from API: " + e.getMessage());
+            deleteTemporaryFiles(temporaryFilePaths);
             System.exit(1);
         }
+
+        deleteTemporaryFiles(temporaryFilePaths);
 
         /*
         // Step 3: Load API key from file (config.properties)
@@ -187,36 +207,6 @@ public class Main {
             System.err.println(e.getMessage());
             System.exit(1);
             return;
-        }
-
-
-
-        // Step 4: If the file is a video, extract the audio from it
-        if (audioFile.getFileType().equals("video")) {
-            String osName = System.getProperty("os.name").toLowerCase();
-
-            if (osName.contains("linux")) {
-                try {
-                    String audioFilePath = AudioFileHelper.extractAudioFromVideo(audioFile.getFilePath());
-                    audioFile.setFilePath(audioFilePath);
-                    audioFile.setFileType("audio");
-                } catch (IOException e) {
-                    System.err.println("Error extracting audio from video: " + e.getMessage());
-                    System.exit(1);
-                }
-            } else {
-                System.err.println("Error: Video file processing is supported only on Linux.");
-                System.exit(1);
-            }
-        }
-
-        // Step 5: Get audio file duration and size
-        try {
-            audioFile.setDuration(AudioFileHelper.getAudioFileDuration(audioFile.getFilePath()));
-            audioFile.setFileSize(AudioFileHelper.getAudioFileSizeInBytes(audioFile.getFilePath()));
-        } catch (IOException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
         }
 
         // Step 6: Print the info about the audio file that we are working with
@@ -305,6 +295,16 @@ public class Main {
         }
 
      */
+    }
+
+    private static void deleteTemporaryFiles(List<String> temporaryFilePaths) {
+        for (String temporaryFilePath : temporaryFilePaths) {
+            try {
+                Files.deleteIfExists(Path.of(temporaryFilePath));
+            } catch (IOException e) {
+                System.err.println("Warning: Failed to delete temporary file: " + e.getMessage());
+            }
+        }
     }
 
 }
