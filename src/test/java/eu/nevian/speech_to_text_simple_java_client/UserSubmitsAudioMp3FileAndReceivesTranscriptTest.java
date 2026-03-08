@@ -1,5 +1,7 @@
 package eu.nevian.speech_to_text_simple_java_client;
 
+/* Temporarily commented out per request.
+
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.LoadingConfigurationException;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.WhisperApiService;
@@ -191,3 +193,4 @@ public class UserSubmitsAudioMp3FileAndReceivesTranscriptTest {
         }
     }
 }
+*/

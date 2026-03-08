@@ -21,7 +21,7 @@ import java.nio.file.Path;
 import java.util.*;
 
 public class Main {
-    private static final String API_KEY_FILE_PATH = "config.properties";
+    private static final String CONFIG_FILE_PATH = "config.properties";
 
     public static void main(String[] args) {
         // Step 1: Parse command line arguments
@@ -60,13 +60,13 @@ public class Main {
 
             try {
                 // Persist the CLI language for future runs.
-                ConfigLoader.saveLanguage(API_KEY_FILE_PATH, language);
+                ConfigLoader.saveLanguage(CONFIG_FILE_PATH, language);
             } catch (IOException e) {
                 System.err.println("Warning: Failed to save language to config.properties: " + e.getMessage());
             }
         } else {
             try {
-                language = ConfigLoader.getLanguage(API_KEY_FILE_PATH);
+                language = ConfigLoader.getLanguage(CONFIG_FILE_PATH);
             } catch (IOException e) {
                 System.err.println("Warning: Failed to read language from config.properties: " + e.getMessage());
             }
@@ -137,12 +137,12 @@ public class Main {
 
         try {
             System.out.println("\n###### Checking access to OpenAI API: Whisper model ######");
-            String responseText = apiService.checkAiModelIsAvailable(ConfigLoader.getApiKey(API_KEY_FILE_PATH));
+            String responseText = apiService.checkAiModelIsAvailable(ConfigLoader.getApiKey(CONFIG_FILE_PATH));
             System.out.println("\nAPI Response: " + (!responseText.isEmpty()));
 
             System.out.println("\n###### Transcribe audio to text ######");
 
-            String aux = apiService.transcribeAudioFile(ConfigLoader.getApiKey(API_KEY_FILE_PATH), language, audioFile.getFilePath());
+            String aux = apiService.transcribeAudioFile(ConfigLoader.getApiKey(CONFIG_FILE_PATH), language, audioFile.getFilePath());
 
             TextFileHelper.saveTranscriptionToFile(aux, "transcription.txt");
             System.out.println("\n\nDONE!\n");
@@ -190,7 +190,7 @@ public class Main {
         final String apiKey;
 
         try {
-            apiKey = ConfigLoader.getApiKey(API_KEY_FILE_PATH);
+            apiKey = ConfigLoader.getApiKey(CONFIG_FILE_PATH);
         } catch (LoadingConfigurationException | IOException e) {
             System.err.println(e.getMessage());
             System.exit(1);
