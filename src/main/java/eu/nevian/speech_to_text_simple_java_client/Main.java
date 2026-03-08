@@ -35,10 +35,27 @@ public class Main {
             System.exit(1);
         }
 
+        if (cmdOptions.hasHelpOption()) {
+            cmdOptions.printCustomHelp();
+            System.exit(0);
+        }
+
+        String version = cmdOptions.getVersionOption();
+        if (version != null) {
+            System.out.println("Speech to Text Simple Java Client version " + version);
+            System.exit(0);
+        }
+
         List<String> positionalArgs = cmdOptions.getRemainingArgs();
 
         if (positionalArgs.isEmpty()) {
             System.err.println("Error: Missing required file path argument");
+            cmdOptions.printCustomHelp();
+            System.exit(1);
+        }
+
+        if (positionalArgs.size() > 1) {
+            System.err.println("Error: Too many file path arguments. Expected exactly one <FILE>.");
             cmdOptions.printCustomHelp();
             System.exit(1);
         }
@@ -161,32 +178,7 @@ public class Main {
         }
 
         /*
-
-
-        if (cmdOptions.hasHelpOption()) {
-            cmdOptions.printCustomHelp();
-            System.exit(0);
-        }
-
-        String version = cmdOptions.getVersionOption();
-        if (version != null) {
-            System.out.println("Speech to Text Simple Java Client version " + version);
-            System.exit(0);
-        }
-
-        String language = cmdOptions.getLanguageOption();
-        if (language != null) {
-            if (language.length() != 2 || LanguageSupport.isNotSupported(language)) {
-                System.err.println("Error: Invalid language code");
-                cmdOptions.printCustomHelp();
-                System.exit(1);
-            }
-        } else {
-                language = LanguageSupport.DEFAULT_LANGUAGE;
-        }
-
-
-        // Step 2: Load API key from file (config.properties)
+        // Step 3: Load API key from file (config.properties)
         final String apiKey;
 
         try {

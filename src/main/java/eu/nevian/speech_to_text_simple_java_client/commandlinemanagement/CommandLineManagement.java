@@ -27,7 +27,7 @@ public class CommandLineManagement {
     public CommandLineOptions parseCommandLineArguments(String[] args) throws ParseException {
         CommandLineParser parser = new DefaultParser();
 
-        CommandLine cmd = parser.parse(options, args);
+        CommandLine cmd = parser.parse(options, args, false);
 
         return new CommandLineOptions(cmd, options);
     }
