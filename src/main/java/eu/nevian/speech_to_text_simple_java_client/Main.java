@@ -68,6 +68,17 @@ public class Main {
 
         // Keep the original input path.
         String originalInputPath = positionalArgs.get(0);
+        Path originalInputResolvedPath = Path.of(originalInputPath).toAbsolutePath().normalize();
+        Path originalInputDirectoryPath = originalInputResolvedPath.getParent() != null
+                ? originalInputResolvedPath.getParent()
+                : Path.of(".").toAbsolutePath().normalize();
+        String originalInputFileName = originalInputResolvedPath.getFileName() != null
+                ? originalInputResolvedPath.getFileName().toString()
+                : originalInputResolvedPath.toString();
+        int originalInputExtensionSeparatorIndex = originalInputFileName.lastIndexOf('.');
+        String originalInputBaseName = originalInputExtensionSeparatorIndex > 0
+                ? originalInputFileName.substring(0, originalInputExtensionSeparatorIndex)
+                : originalInputFileName;
         // Resolve language in order: CLI option -> config.properties -> LanguageSupport.DEFAULT_LANGUAGE.
         String language = null;
         String languageOption = cmdOptions.getLanguageOption();
@@ -168,7 +179,9 @@ public class Main {
                     System.out.println("\nFile is too big. Splitting it into smaller files...\n");
                 }
 
-                audioFileList.addAll(AudioFileHelper.splitAudioFileBySize(audioFile, maxFileSizeInBytes, temporaryWorkspacePath));
+                audioFileList.addAll(
+                        AudioFileHelper.splitAudioFileBySize(audioFile, maxFileSizeInBytes, temporaryWorkspacePath)
+                );
 
                 if (audioFileList.size() > 1) {
                     System.out.println("Audio split into " + audioFileList.size() + " smaller files:");
@@ -201,8 +214,38 @@ public class Main {
                     audioTranscription.append(apiService.transcribeAudioFile(apiKey, language, af.getFilePath()));
                 }
 
-                TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");
+                String transcriptionText = audioTranscription.toString();
+
+                TextFileHelper.saveTranscriptionToFile(transcriptionText, "transcription.txt");
                 System.out.println("\n\nDONE!\n");
+                System.out.println("The API response has: " + transcriptionText.length() + " characters and "
+                        + TextFileHelper.countWords(transcriptionText) + " words.\n");
+
+                System.out.print("Do you want to move the transcription.txt file to the same folder as the original file? (y/n) ");
+                String userAnswer;
+                try (Scanner scanner = new Scanner(System.in)) {
+                    userAnswer = scanner.hasNextLine() ? scanner.nextLine().trim() : "";
+                }
+                boolean shouldMoveTranscriptionFile = "y".equalsIgnoreCase(userAnswer);
+
+                Path sourceTranscriptionPath = Path.of("transcription.txt").toAbsolutePath().normalize();
+                String destinationFileName = originalInputBaseName + "_TRANSCRIPTION.txt";
+                Path destinationTranscriptionPath = originalInputDirectoryPath.resolve(destinationFileName)
+                        .toAbsolutePath()
+                        .normalize();
+
+                if (shouldMoveTranscriptionFile) {
+                    try {
+                        TextFileHelper.moveTranscriptionFile(sourceTranscriptionPath.toFile(), originalInputDirectoryPath.toString(), destinationFileName);
+                        System.out.println("Transcription file has been moved to the original file's folder.");
+                        System.out.println("You can find it at: " + destinationTranscriptionPath);
+                    } catch (IOException e) {
+                        System.err.println("Failed to move the transcription file.");
+                        System.err.println("You can find it at: " + sourceTranscriptionPath);
+                    }
+                } else {
+                    System.out.println("Transcription file will not be moved. You can find it at: " + sourceTranscriptionPath);
+                }
             } catch (IOException | LoadingConfigurationException e) {
                 System.err.println("Error fetching data from API: " + e.getMessage());
                 return 1;
@@ -211,105 +254,6 @@ public class Main {
             System.err.println("Error creating temporary workspace: " + e.getMessage());
             return 1;
         }
-
-        /*
-        // Step 3: Load API key from file (config.properties)
-        final String apiKey;
-
-        try {
-            apiKey = ConfigLoader.getApiKey(CONFIG_FILE_PATH);
-        } catch (LoadingConfigurationException | IOException e) {
-            System.err.println(e.getMessage());
-            System.exit(1);
-            return;
-        }
-
-        // Step 6: Print the info about the audio file that we are working with
-        System.out.println(audioFile);
-
-        // Step 7: Split the audio file if it is too big (max size admitted by OpenAI API is 25 MB)
-        final List<AudioFile> audioFileList = new ArrayList<>();
-
-        try {
-            if (audioFile.getFileSize() > max_file_size_in_bytes) {
-                System.out.println("\nFile is too big. Splitting it into smaller files...\n");
-            }
-
-            audioFileList.addAll(AudioFileHelper.splitAudioFileBySize(audioFile, max_file_size_in_bytes));
-
-            // Step 7b: Print the info of the audio files split from the original one
-            if (audioFileList.size() > 1) {
-                System.out.println("Audio split into " + audioFileList.size() + " smaller files:");
-                for (AudioFile af : audioFileList) {
-                    System.out.println(af.toString());
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Error splitting audio file: " + e.getMessage());
-            System.exit(1);
-        }
-
-        // Step 8: It's time to call the API
-        ApiService apiService = new WhisperApiService();
-
-        try {
-            System.out.println("\n###### Checking access to OpenAI API: Whisper model ######");
-            String responseText = apiService.checkAiModelIsAvailable(apiKey);
-            System.out.println("\nAPI Response: " + (!responseText.isEmpty()));
-
-            System.out.println("\n###### Transcribe audio to text ######");
-
-            StringBuilder audioTranscription = new StringBuilder();
-
-            for (AudioFile af : audioFileList) {
-                // This will append the separator only if there's already content in the audioTranscription.
-                if (audioTranscription.length() > 0) {
-                    audioTranscription.append("\n//\n");
-                }
-                audioTranscription.append(apiService.transcribeAudioFile(apiKey, language, af.getFilePath()));
-            }
-
-            TextFileHelper.saveTranscriptionToFile(audioTranscription.toString(), "transcription.txt");
-            System.out.println("\n\nDONE!\n");
-
-            System.out.println("The API response has: " + audioTranscription.length() + " characters and "
-                    + TextFileHelper.countWords(audioTranscription.toString()) + " words.\n");
-        } catch (IOException e) {
-            System.err.println("Error fetching data from API: " + e.getMessage());
-            System.exit(1);
-        }
-
-        //Step 9: Ask the user if he wants to move the transcription file to the same folder as the audio file
-        System.out.print("Do you want to move the transcription.txt file to the same folder as the audio file? (y/n) ");
-        String userAnswer;
-
-        try (Scanner scanner = new Scanner(System.in)) {
-            userAnswer = scanner.nextLine();
-        }
-
-        if (userAnswer.equals("y") || userAnswer.equals("Y")) {
-            File sourceFile = new File("transcription.txt");
-
-            String destinationFolderPath = new File(audioFile.getFilePath()).getParent();
-
-            String audioFileName = new File(audioFile.getFilePath()).getName();
-            String fileNameWithoutExtension = audioFileName.substring(0, audioFileName.lastIndexOf('.'));
-            String destinationFileName = fileNameWithoutExtension + "_TRANSCRIPTION" + ".txt";
-
-            try {
-                TextFileHelper.moveTranscriptionFile(sourceFile, destinationFolderPath, destinationFileName);
-
-                System.out.println("Transcription file has been moved to the audio file's folder.");
-                System.out.println("You can find it at: " + new File(destinationFolderPath, destinationFileName).getAbsolutePath());
-            } catch (IOException e) {
-                System.err.println("Failed to move the transcription file.");
-                System.err.println("You can find it at: " + new File("transcription.txt").getAbsolutePath());
-            }
-        } else {
-            System.out.println("Transcription file will not be moved. You can find it at: " + new File("transcription.txt").getAbsolutePath());
-        }
-
-     */
 
         return 0;
     }

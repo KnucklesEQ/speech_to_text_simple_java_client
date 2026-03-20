@@ -1,6 +1,7 @@
 package eu.nevian.speech_to_text_simple_java_client.transcriptionservice;
 
-import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import okhttp3.*;
 
 import java.io.File;
@@ -98,9 +99,27 @@ public class WhisperApiService implements ApiService{
             if (response.body() == null) {
                 throw new IOException("Response body is null");
             }
-            return response.body().string();
+
+            String responseBody = response.body().string();
+            return extractTranscriptionText(responseBody);
         }
     }
 
+    private String extractTranscriptionText(String responseBody) throws IOException {
+        JsonNode rootNode;
+
+        try {
+            rootNode = new ObjectMapper().readTree(responseBody);
+        } catch (IOException e) {
+            throw new IOException("Invalid transcription response format", e);
+        }
+
+        JsonNode textNode = rootNode.path("text");
+        if (textNode.isMissingNode() || textNode.isNull() || !textNode.isTextual()) {
+            throw new IOException("Invalid transcription response: missing text field");
+        }
+
+        return textNode.asText();
+    }
 
 }
