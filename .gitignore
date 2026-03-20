@@ -20,6 +20,9 @@
 *.iws
 .idea/
 
+## Eclipse related ##
+.project
+
 ## Gradle related ##
 .gradle
 **/build/
