@@ -67,7 +67,13 @@ public class Main {
         }
 
         // Keep the original input path.
-        String originalInputPath = positionalArgs.get(0);
+        String originalInputPath = positionalArgs.getFirst();
+        Path configFilePath = ConfigLoader.resolveConfigFilePath(CONFIG_FILE_PATH);
+        String configFilePathString = configFilePath.toString();
+        if (ConfigLoader.configFileDoesNotExist(configFilePath)) {
+            System.err.println(MessageManager.getConfigFileNotFoundGuidanceMessage(configFilePathString));
+            return 1;
+        }
         Path originalInputResolvedPath = Path.of(originalInputPath).toAbsolutePath().normalize();
         Path originalInputDirectoryPath = originalInputResolvedPath.getParent() != null
                 ? originalInputResolvedPath.getParent()
@@ -92,13 +98,13 @@ public class Main {
 
             try {
                 // Persist the CLI language for future runs.
-                ConfigLoader.saveLanguage(CONFIG_FILE_PATH, language);
+                ConfigLoader.saveLanguage(configFilePathString, language);
             } catch (IOException e) {
                 System.err.println("Warning: Failed to save language to config.properties: " + e.getMessage());
             }
         } else {
             try {
-                language = ConfigLoader.getLanguage(CONFIG_FILE_PATH);
+                language = ConfigLoader.getLanguage(configFilePathString);
             } catch (IOException e) {
                 System.err.println("Warning: Failed to read language from config.properties: " + e.getMessage());
             }
@@ -171,10 +177,11 @@ public class Main {
             try {
                 audioFile.setDuration(AudioFileHelper.getAudioFileDuration(audioFile.getFilePath()));
                 audioFile.setFileSize(AudioFileHelper.getAudioFileSizeInBytes(audioFile.getFilePath()));
+                System.out.println();
                 System.out.println(audioFile);
 
                 // Step 5: Split the audio file if it is too big
-                long maxFileSizeInBytes = ConfigLoader.getMaxFileSizeInBytes();
+                long maxFileSizeInBytes = ConfigLoader.getMaxFileSizeInBytes(configFilePathString);
                 if (audioFile.getFileSize() > maxFileSizeInBytes) {
                     System.out.println("\nFile is too big. Splitting it into smaller files...\n");
                 }
@@ -198,7 +205,7 @@ public class Main {
             ApiService apiService = new WhisperApiService();
 
             try {
-                String apiKey = ConfigLoader.getApiKey(CONFIG_FILE_PATH);
+                String apiKey = ConfigLoader.getApiKey(configFilePathString);
 
                 System.out.println("\n###### Checking access to OpenAI API: Whisper model ######");
                 String responseText = apiService.checkAiModelIsAvailable(apiKey);

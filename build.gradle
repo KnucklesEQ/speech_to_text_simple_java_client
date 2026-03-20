@@ -43,8 +43,7 @@ dependencies {
     implementation 'org.apache.tika:tika-core:3.2.2'
 
     // Log library
-    implementation 'ch.qos.logback:logback-core:1.5.25'
-    implementation 'ch.qos.logback:logback-classic:1.5.13'
+    implementation 'ch.qos.logback:logback-classic:1.5.25'
 
     // Commons CLI is used to parse the command line arguments
     implementation 'commons-cli:commons-cli:1.8.0'

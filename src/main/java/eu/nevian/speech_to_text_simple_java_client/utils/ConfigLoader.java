@@ -6,10 +6,46 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Properties;
 
 public class ConfigLoader {
     private ConfigLoader() {
+    }
+
+    public static Path resolveConfigFilePath(String configFileName) {
+        Path currentWorkingDirectoryConfigPath = Path.of(configFileName).toAbsolutePath().normalize();
+
+        try {
+            if (ConfigLoader.class.getProtectionDomain() == null
+                    || ConfigLoader.class.getProtectionDomain().getCodeSource() == null
+                    || ConfigLoader.class.getProtectionDomain().getCodeSource().getLocation() == null) {
+                return currentWorkingDirectoryConfigPath;
+            }
+
+            Path codeSourcePath = Path.of(
+                    ConfigLoader.class.getProtectionDomain().getCodeSource().getLocation().toURI()
+            ).toAbsolutePath().normalize();
+
+            if (Files.isRegularFile(codeSourcePath)
+                    && codeSourcePath.getFileName() != null
+                    && codeSourcePath.getFileName().toString().endsWith(".jar")) {
+                Path jarDirectoryPath = codeSourcePath.getParent();
+                if (jarDirectoryPath != null) {
+                    return jarDirectoryPath.resolve(configFileName).toAbsolutePath().normalize();
+                }
+            }
+        } catch (URISyntaxException | RuntimeException e) {
+            return currentWorkingDirectoryConfigPath;
+        }
+
+        return currentWorkingDirectoryConfigPath;
+    }
+
+    public static boolean configFileDoesNotExist(Path configFilePath) {
+        return !Files.exists(configFilePath);
     }
 
     public static String getApiKey(String ApiKeyFilePath) throws IOException, LoadingConfigurationException {
@@ -18,7 +54,7 @@ public class ConfigLoader {
         try (FileInputStream fileInputStream = new FileInputStream(ApiKeyFilePath)) {
             properties.load(fileInputStream);
         } catch (FileNotFoundException e) {
-            throw new FileNotFoundException(MessageManager.getConfigFileNotFoundMessage());
+            throw new FileNotFoundException(MessageManager.getConfigFileNotFoundMessage(ApiKeyFilePath));
         } catch (IOException e) {
             throw new IOException(MessageManager.getConfigFileReadErrorMessage(e.getMessage()));
         }
@@ -31,13 +67,15 @@ public class ConfigLoader {
         return apiKey;
     }
 
-    public static int getMaxFileSizeInBytes() throws IOException {
+    public static int getMaxFileSizeInBytes(String configFilePath) throws IOException {
         Properties properties = new Properties();
 
-        try (FileInputStream fileInputStream = new FileInputStream("config.properties")) {
+        try (FileInputStream fileInputStream = new FileInputStream(configFilePath)) {
             properties.load(fileInputStream);
+        } catch (FileNotFoundException e) {
+            throw new FileNotFoundException(MessageManager.getConfigFileNotFoundMessage(configFilePath));
         } catch (IOException e) {
-            throw new LoadingConfigurationException(MessageManager.getConfigFileNotFoundMessage());
+            throw new IOException(MessageManager.getConfigFileReadErrorMessage(e.getMessage()));
         }
 
         String fileSizeString = properties.getProperty("audio_file_limit_size_in_bytes");
@@ -71,7 +109,7 @@ public class ConfigLoader {
         try (FileInputStream fileInputStream = new FileInputStream(configFilePath)) {
             properties.load(fileInputStream);
         } catch (FileNotFoundException e) {
-            // Create a new properties file if it does not exist.
+            throw new FileNotFoundException(MessageManager.getConfigFileNotFoundMessage(configFilePath));
         }
 
         properties.setProperty("language", language);
