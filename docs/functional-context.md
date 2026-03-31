@@ -1,4 +1,4 @@
-# Especificación funcional
+# Contexto Funcional del Proyecto
 
 ## 1. Introducción
 
@@ -22,7 +22,7 @@ La aplicación ofrece las siguientes capacidades funcionales:
 - extrae automáticamente el audio de un archivo de vídeo;
 - divide automáticamente el audio en partes cuando supera el límite configurado;
 - permite indicar el idioma del audio;
-- guarda el resultado en un archivo de texto;
+- guarda el resultado de la transcripción en un archivo de texto;
 - muestra mensajes de progreso, aviso y error durante la ejecución.
 
 ## 4. Usuario objetivo
@@ -272,7 +272,7 @@ Desde el punto de vista funcional, el usuario sigue trabajando con un único com
 
 ## 10. Tratamiento de archivos grandes
 
-La aplicación contempla el caso en que el archivo de entrada exceda el límite de tamaño configurado.
+La aplicación contempla el caso en que el archivo de entrada exceda la duración configurada.
 
 En ese escenario:
 
@@ -302,7 +302,7 @@ La aplicación realiza automáticamente varias acciones sin solicitar intervenci
 
 - validación de la entrada;
 - conversión de vídeo a audio cuando procede;
-- detección de necesidad de particionado por tamaño;
+- detección de necesidad de particionado del audio por duración;
 - división automática del audio;
 - uso de un idioma por defecto cuando no existe uno válido;
 - persistencia de la preferencia de idioma cuando el usuario la fija explícitamente;
