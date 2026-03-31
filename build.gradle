@@ -1,7 +1,8 @@
 plugins {
     id 'java'
     id 'application'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    //Gradle plugin for creating fat/uber JARs with support for package relocation
+    id 'com.gradleup.shadow' version '9.4.1'
 }
 
 version = '0.1.0'
@@ -27,12 +28,9 @@ jar {
 }
 
 // --> ./gradlew shadowJar
-shadowJar {
+tasks.named('shadowJar') {
     archiveBaseName.set('speech_to_text_simple_java_client')
     archiveClassifier.set('')
-    manifest {
-        attributes 'Main-Class': 'eu.nevian.speech_to_text_simple_java_client.Main'
-    }
 }
 
 dependencies {
