@@ -22,6 +22,8 @@
 
 ## Eclipse related ##
 .project
+/bin/
+/.settings/
 
 ## Gradle related ##
 .gradle
