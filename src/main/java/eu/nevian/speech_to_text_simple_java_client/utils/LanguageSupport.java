@@ -6,8 +6,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class LanguageSupport {
-    public static final String DEFAULT_LANGUAGE = "en";
-
     private static final Set<String> SUPPORTED_LANGUAGES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
             "af", "ar", "hy", "az", "be", "bs", "bg", "ca", "zh", "hr", "cs", "da", "nl", "en", "et", "fi", "fr",
             "gl", "de", "el", "he", "hi", "hu", "is", "id", "it", "ja", "kn", "kk", "ko", "lv", "lt", "mk", "ms",
@@ -26,7 +24,7 @@ public class LanguageSupport {
         return SUPPORTED_LANGUAGES.contains(language);
     }
 
-    public static boolean isNotSupported(String language) {
-        return !isSupported(language);
+    public static boolean isValidLanguageCode(String language) {
+        return language != null && language.length() == 2 && isSupported(language);
     }
 }

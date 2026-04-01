@@ -13,21 +13,27 @@ public class WhisperApiService implements ApiService{
      * HTTP client used for making API calls.
      */
     private final OkHttpClient httpClient;
+    private final TranscriptionServiceDefinition transcriptionServiceDefinition;
 
     /**
      * Constructor. Creates a new instance of {@link WhisperApiService} piService} and configures the timeout values for
      * the HTTP client.
      */
     public WhisperApiService() {
-        httpClient = new OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(0, TimeUnit.SECONDS)
-                .writeTimeout(0, TimeUnit.SECONDS)
-                .build();
+        this(createDefaultHttpClient(), TranscriptionServiceDefinition.OPENAI_WHISPER);
     }
 
     public WhisperApiService(OkHttpClient httpClient) {
+        this(httpClient, TranscriptionServiceDefinition.OPENAI_WHISPER);
+    }
+
+    public WhisperApiService(TranscriptionServiceDefinition transcriptionServiceDefinition) {
+        this(createDefaultHttpClient(), transcriptionServiceDefinition);
+    }
+
+    public WhisperApiService(OkHttpClient httpClient, TranscriptionServiceDefinition transcriptionServiceDefinition) {
         this.httpClient = httpClient;
+        this.transcriptionServiceDefinition = transcriptionServiceDefinition;
     }
 
     /**
@@ -38,15 +44,16 @@ public class WhisperApiService implements ApiService{
      * @throws IOException If an error occurs while making the API call.
      */
     public String checkAiModelIsAvailable(String apiKey) throws IOException {
-        final String organization = "org-GsWPyLdc05pSY3GVSQt2dWkP";
-        final String url = "https://api.openai.com/v1/models/whisper-1";
-
-        Request request = new Request.Builder()
-                .url(url)
+        Request.Builder requestBuilder = new Request.Builder()
+                .url(transcriptionServiceDefinition.modelCheckUrl())
                 .addHeader("Authorization", "Bearer " + apiKey)
-                .addHeader("OpenAI-Organization", organization)
-                .get() // GET request
-                .build();
+                .get();
+
+        if (transcriptionServiceDefinition.organization() != null) {
+            requestBuilder.addHeader("OpenAI-Organization", transcriptionServiceDefinition.organization());
+        }
+
+        Request request = requestBuilder.build();
 
         try (Response response = ApiServiceHelper.performApiRequestWithAnimation(request, httpClient)) {
             if (!response.isSuccessful()) {
@@ -70,9 +77,6 @@ public class WhisperApiService implements ApiService{
      * @throws IOException If an error occurs while making the API call.
      */
     public String transcribeAudioFile(String apiKey, String language, String audioFilePath) throws IOException {
-        final String url = "https://api.openai.com/v1/audio/transcriptions";
-        final String model = "whisper-1";
-
         File file = new File(audioFilePath);
 
         RequestBody requestBody = new MultipartBody.Builder()
@@ -80,12 +84,12 @@ public class WhisperApiService implements ApiService{
                 .addFormDataPart(
                         "file", file.getName(),
                         RequestBody.create(file, MediaType.get("audio/mpeg")))
-                .addFormDataPart("model", model)
+                .addFormDataPart("model", transcriptionServiceDefinition.modelName())
                 .addFormDataPart("language", language)
                 .build();
 
         Request request = new Request.Builder()
-                .url(url)
+                .url(transcriptionServiceDefinition.transcriptionUrl())
                 .addHeader("Authorization", "Bearer " + apiKey)
                 .addHeader("Content-Type", "multipart/form-data")
                 .post(requestBody) // POST request
@@ -120,6 +124,14 @@ public class WhisperApiService implements ApiService{
         }
 
         return textNode.asText();
+    }
+
+    private static OkHttpClient createDefaultHttpClient() {
+        return new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.SECONDS)
+                .writeTimeout(0, TimeUnit.SECONDS)
+                .build();
     }
 
 }

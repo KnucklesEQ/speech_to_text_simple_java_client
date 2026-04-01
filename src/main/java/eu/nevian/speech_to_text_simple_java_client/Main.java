@@ -4,14 +4,18 @@ import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFile;
 import eu.nevian.speech_to_text_simple_java_client.audiofile.AudioFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineManagement;
 import eu.nevian.speech_to_text_simple_java_client.commandlinemanagement.CommandLineOptions;
+import eu.nevian.speech_to_text_simple_java_client.config.ApplicationConfigResolver;
+import eu.nevian.speech_to_text_simple_java_client.config.ApplicationDefaults;
+import eu.nevian.speech_to_text_simple_java_client.config.ResolvedApplicationConfig;
+import eu.nevian.speech_to_text_simple_java_client.config.UserConfig;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.FileValidationException;
+import eu.nevian.speech_to_text_simple_java_client.exceptions.InvalidLanguageOptionException;
 import eu.nevian.speech_to_text_simple_java_client.exceptions.LoadingConfigurationException;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.ApiService;
 import eu.nevian.speech_to_text_simple_java_client.transcriptionservice.WhisperApiService;
 import eu.nevian.speech_to_text_simple_java_client.utils.ConfigLoader;
 import eu.nevian.speech_to_text_simple_java_client.utils.FileType;
 import eu.nevian.speech_to_text_simple_java_client.utils.FfmpegProcessHelper;
-import eu.nevian.speech_to_text_simple_java_client.utils.LanguageSupport;
 import eu.nevian.speech_to_text_simple_java_client.utils.MessageManager;
 import eu.nevian.speech_to_text_simple_java_client.utils.TextFileHelper;
 import eu.nevian.speech_to_text_simple_java_client.utils.TemporaryWorkspaceHelper;
@@ -20,7 +24,9 @@ import org.apache.commons.cli.*;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
 public class Main {
     private static final String CONFIG_FILE_PATH = "config.properties";
@@ -69,11 +75,32 @@ public class Main {
         // Keep the original input path.
         String originalInputPath = positionalArgs.getFirst();
         Path configFilePath = ConfigLoader.resolveConfigFilePath(CONFIG_FILE_PATH);
-        String configFilePathString = configFilePath.toString();
         if (ConfigLoader.configFileDoesNotExist(configFilePath)) {
-            System.err.println(MessageManager.getConfigFileNotFoundGuidanceMessage(configFilePathString));
+            System.err.println(MessageManager.getConfigFileNotFoundGuidanceMessage(configFilePath.toString()));
             return 1;
         }
+
+        UserConfig userConfig;
+        ApplicationDefaults applicationDefaults;
+        ResolvedApplicationConfig resolvedApplicationConfig;
+        try {
+            userConfig = ConfigLoader.loadUserConfig(configFilePath);
+            applicationDefaults = ConfigLoader.loadApplicationDefaults();
+            resolvedApplicationConfig = ApplicationConfigResolver.resolve(
+                    cmdOptions,
+                    configFilePath,
+                    userConfig,
+                    applicationDefaults
+            );
+        } catch (InvalidLanguageOptionException e) {
+            System.err.println(e.getMessage());
+            cmdOptions.printCustomHelp();
+            return 1;
+        } catch (IOException | LoadingConfigurationException e) {
+            System.err.println(e.getMessage());
+            return 1;
+        }
+
         Path originalInputResolvedPath = Path.of(originalInputPath).toAbsolutePath().normalize();
         Path originalInputDirectoryPath = originalInputResolvedPath.getParent() != null
                 ? originalInputResolvedPath.getParent()
@@ -85,41 +112,9 @@ public class Main {
         String originalInputBaseName = originalInputExtensionSeparatorIndex > 0
                 ? originalInputFileName.substring(0, originalInputExtensionSeparatorIndex)
                 : originalInputFileName;
-        // Resolve language in order: CLI option -> config.properties -> LanguageSupport.DEFAULT_LANGUAGE.
-        String language = null;
-        String languageOption = cmdOptions.getLanguageOption();
-        if (languageOption != null) {
-            language = languageOption.trim().toLowerCase(Locale.ROOT);
-            if (language.length() != 2 || LanguageSupport.isNotSupported(language)) {
-                System.err.println("Error: Invalid language code");
-                cmdOptions.printCustomHelp();
-                return 1;
-            }
 
-            try {
-                // Persist the CLI language for future runs.
-                ConfigLoader.saveLanguage(configFilePathString, language);
-            } catch (IOException e) {
-                System.err.println("Warning: Failed to save language to config.properties: " + e.getMessage());
-            }
-        } else {
-            try {
-                language = ConfigLoader.getLanguage(configFilePathString);
-            } catch (IOException e) {
-                System.err.println("Warning: Failed to read language from config.properties: " + e.getMessage());
-            }
-
-            if (language != null) {
-                String rawLanguage = language;
-                language = language.trim().toLowerCase(Locale.ROOT);
-                if (language.length() != 2 || LanguageSupport.isNotSupported(language)) {
-                    System.err.println("Warning: Invalid language in config.properties (" + rawLanguage
-                            + "). Falling back to \"" + LanguageSupport.DEFAULT_LANGUAGE + "\".");
-                    language = LanguageSupport.DEFAULT_LANGUAGE;
-                }
-            } else {
-                language = LanguageSupport.DEFAULT_LANGUAGE;
-            }
+        if (resolvedApplicationConfig.warningMessage() != null) {
+            System.err.println(resolvedApplicationConfig.warningMessage());
         }
 
         if (FfmpegProcessHelper.isFfmpegNotAvailable()) {
@@ -181,7 +176,7 @@ public class Main {
                 System.out.println(audioFile);
 
                 // Step 5: Split the audio file if it is too big
-                long maxFileSizeInBytes = ConfigLoader.getMaxFileSizeInBytes(configFilePathString);
+                long maxFileSizeInBytes = resolvedApplicationConfig.audioFileLimitSizeInBytes();
                 if (audioFile.getFileSize() > maxFileSizeInBytes) {
                     System.out.println("\nFile is too big. Splitting it into smaller files...\n");
                 }
@@ -202,10 +197,10 @@ public class Main {
             }
 
             // Step 8: It's time to call the API
-            ApiService apiService = new WhisperApiService();
+            ApiService apiService = new WhisperApiService(resolvedApplicationConfig.serviceDefinition());
 
             try {
-                String apiKey = ConfigLoader.getApiKey(configFilePathString);
+                String apiKey = resolvedApplicationConfig.apiKey();
 
                 System.out.println("\n###### Checking access to OpenAI API: Whisper model ######");
                 String responseText = apiService.checkAiModelIsAvailable(apiKey);
@@ -218,7 +213,13 @@ public class Main {
                     if (!audioTranscription.isEmpty()) {
                         audioTranscription.append("\n//\n");
                     }
-                    audioTranscription.append(apiService.transcribeAudioFile(apiKey, language, af.getFilePath()));
+                    audioTranscription.append(
+                            apiService.transcribeAudioFile(
+                                    apiKey,
+                                    resolvedApplicationConfig.effectiveLanguage(),
+                                    af.getFilePath()
+                            )
+                    );
                 }
 
                 String transcriptionText = audioTranscription.toString();
@@ -253,7 +254,7 @@ public class Main {
                 } else {
                     System.out.println("Transcription file will not be moved. You can find it at: " + sourceTranscriptionPath);
                 }
-            } catch (IOException | LoadingConfigurationException e) {
+            } catch (IOException e) {
                 System.err.println("Error fetching data from API: " + e.getMessage());
                 return 1;
             }

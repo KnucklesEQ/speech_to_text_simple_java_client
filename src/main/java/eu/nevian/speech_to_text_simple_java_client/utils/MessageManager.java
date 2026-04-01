@@ -9,6 +9,10 @@ public class MessageManager {
     private static final String API_KEY_NOT_FOUND = "Error: API key not found in config file.";
     private static final String CONFIG_FILE_NOT_FOUND = "Error: Unable to find config.properties file at: %s.";
     private static final String CONFIG_FILE_READ_ERROR = "Error reading config.properties file: %s.";
+    private static final String CONFIG_FILE_WRITE_ERROR = "Error writing config.properties file: %s.";
+    private static final String APPLICATION_DEFAULTS_NOT_FOUND = "Error: Unable to find internal application defaults resource: %s.";
+    private static final String APPLICATION_DEFAULTS_READ_ERROR = "Error reading internal application defaults resource %s: %s.";
+    private static final String APPLICATION_DEFAULTS_INVALID = "Error: Invalid internal application defaults resource %s. Problem with property: %s.";
     private static final String CONFIG_FILE_NOT_FOUND_GUIDANCE = """
             Error: config.properties file not found.
             Expected location: %s
@@ -16,7 +20,6 @@ public class MessageManager {
 
             Minimal example:
             api_key=YOUR_OPENAI_API_KEY
-            audio_file_limit_size_in_bytes=25000000
             language=en
             """;
 
@@ -52,7 +55,23 @@ public class MessageManager {
         return String.format(CONFIG_FILE_READ_ERROR, errorMessage);
     }
 
+    public static String getConfigFileWriteErrorMessage(String errorMessage) {
+        return String.format(CONFIG_FILE_WRITE_ERROR, errorMessage);
+    }
+
     public static String getConfigFileNotFoundGuidanceMessage(String configFilePath) {
         return String.format(CONFIG_FILE_NOT_FOUND_GUIDANCE, configFilePath);
+    }
+
+    public static String getApplicationDefaultsNotFoundMessage(String resourceName) {
+        return String.format(APPLICATION_DEFAULTS_NOT_FOUND, resourceName);
+    }
+
+    public static String getApplicationDefaultsReadErrorMessage(String resourceName, String errorMessage) {
+        return String.format(APPLICATION_DEFAULTS_READ_ERROR, resourceName, errorMessage);
+    }
+
+    public static String getApplicationDefaultsInvalidMessage(String resourceName, String propertyName) {
+        return String.format(APPLICATION_DEFAULTS_INVALID, resourceName, propertyName);
     }
 }
