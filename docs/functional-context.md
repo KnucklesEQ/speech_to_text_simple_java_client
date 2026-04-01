@@ -20,7 +20,7 @@ La aplicación ofrece las siguientes capacidades funcionales:
 - admite archivos de audio y de vídeo;
 - valida el archivo antes de iniciar la transcripción;
 - extrae automáticamente el audio de un archivo de vídeo;
-- divide automáticamente el audio en partes cuando supera el límite configurado;
+- divide automáticamente el audio en partes cuando supera el límite interno configurado por la aplicación;
 - permite indicar el idioma del audio, siempre que sea uno de los soportados;
 - guarda el resultado de la transcripción en un archivo de texto;
 - muestra un resumen final del resultado obtenido;
@@ -62,13 +62,13 @@ En otros contextos de ejecución, la aplicación utiliza el `config.properties` 
 Los parámetros funcionales utilizados son:
 
 - `api_key`: credencial necesaria para acceder al servicio de transcripción;
-- `audio_file_limit_size_in_bytes`: límite máximo de tamaño permitido para procesar un archivo sin necesidad de dividirlo;
 - `language`: preferencia de idioma a utilizar por defecto en la transcripción, expresada mediante un código de dos letras soportado por la aplicación.
+
+Además, la aplicación utiliza valores internos empaquetados para resolver ciertos comportamientos técnicos, como el idioma por defecto y el límite de tamaño a partir del cual un audio debe dividirse. Esos valores no forman parte de la configuración editable del usuario.
 
 ### 6.2 Carácter obligatorio u opcional
 
 - `api_key` es obligatoria para el uso efectivo de la aplicación.
-- `audio_file_limit_size_in_bytes` debe estar disponible para que la aplicación pueda decidir si necesita dividir el archivo.
 - `language` es opcional. Si no existe, la aplicación utiliza un idioma por defecto. Si existe pero no es válida o no está soportada, la aplicación muestra un aviso y utiliza el idioma por defecto.
 
 ### 6.3 Comportamiento ante errores de configuración
@@ -77,12 +77,12 @@ Si falta la configuración requerida o contiene valores no utilizables, la aplic
 
 Cuando el valor de `language` almacenado en la configuración no es válido o no está soportado, la aplicación avisa y continúa utilizando el idioma por defecto.
 
+Si faltan o son inválidos los valores internos empaquetados necesarios para el funcionamiento, la aplicación informa del problema y detiene la ejecución.
+
 ### 6.4 Ejemplo de configuración mínima
 
 ```properties
 api_key=TU_CLAVE_DE_API
-audio_file_limit_size_in_bytes=25000000
-language=es
 ```
 
 ## 7. Modos de uso y opciones disponibles
@@ -162,7 +162,7 @@ Salida esperada:
 - se genera `transcription.txt` en el directorio de trabajo;
 - al finalizar, la aplicación solicita al usuario la decisión sobre la ubicación final del archivo.
 
-#### 7.3.5 Transcripción de un archivo de audio que supera el límite configurado
+#### 7.3.5 Transcripción de un archivo de audio que supera el límite interno configurado
 
 Qué hace: procesa un archivo de audio grande mediante división automática en partes.
 
@@ -172,7 +172,7 @@ java -jar build/libs/speech_to_text_simple_java_client-0.1.0.jar ruta/al/audio_g
 
 Salida esperada:
 
-- la consola informa de que el archivo supera el límite configurado;
+- la consola informa de que el archivo supera el límite interno configurado;
 - la aplicación divide automáticamente el contenido en fragmentos;
 - se genera un único `transcription.txt` con el resultado conjunto;
 - al finalizar, la aplicación muestra un resumen del texto y solicita al usuario la decisión sobre la ubicación final del archivo.
@@ -299,13 +299,13 @@ La aplicación utiliza un criterio de prioridad para determinar el idioma de tra
 
 1. idioma indicado explícitamente por el usuario en la ejecución en curso;
 2. idioma guardado en la configuración;
-3. idioma por defecto de la aplicación.
+3. idioma por defecto interno de la aplicación.
 
 Los valores de idioma deben indicarse mediante un código breve de dos letras soportado por la aplicación.
 
 Además, cuando el usuario indica explícitamente un idioma en la línea de comandos, la aplicación conserva esa preferencia para futuras ejecuciones.
 
-Si el valor de idioma disponible no es válido o no está soportado, la aplicación avisa y utiliza el idioma por defecto de la aplicación, que es inglés (`en`).
+Si el valor de idioma disponible no es válido o no está soportado, la aplicación avisa y utiliza el idioma por defecto interno de la aplicación, que es inglés (`en`).
 
 Si el usuario indica en la línea de comandos un idioma no válido o no soportado, la aplicación informa del error, muestra la ayuda y finaliza sin continuar el procesamiento.
 
@@ -317,7 +317,7 @@ La aplicación realiza automáticamente varias acciones sin solicitar intervenci
 - conversión de vídeo a audio cuando procede;
 - detección de necesidad de particionado del audio por tamaño de archivo;
 - división automática del audio;
-- uso de un idioma por defecto cuando no existe uno válido;
+- uso de un idioma por defecto interno cuando no existe uno válido;
 - persistencia de la preferencia de idioma cuando el usuario la fija explícitamente;
 - creación y eliminación de archivos temporales de trabajo.
 
@@ -403,7 +403,7 @@ El usuario proporciona un archivo de vídeo válido. La aplicación extrae autom
 
 ### 17.3 Caso con archivo grande
 
-El usuario proporciona un archivo cuyo tamaño supera el límite configurado. La aplicación lo divide, procesa las partes, recompone un único resultado final y permite decidir la ubicación final del archivo generado.
+El usuario proporciona un archivo cuyo tamaño supera el límite interno configurado por la aplicación. La aplicación lo divide, procesa las partes, recompone un único resultado final y permite decidir la ubicación final del archivo generado.
 
 ### 17.4 Caso con idioma indicado por el usuario
 

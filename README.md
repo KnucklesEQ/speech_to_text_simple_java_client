@@ -33,20 +33,22 @@ Build the runnable fat JAR:
 ```
 
 ## Configuration
-The current implementation expects a `config.properties` file in the working directory where you run the application.
+The application expects an external `config.properties` file.
+
+- When you run the fat JAR, `config.properties` must be next to the JAR.
+- In other execution modes, `config.properties` is read from the current working directory.
 
 Required and supported properties:
 
 ```properties
 api_key=YOUR_OPENAI_API_KEY
-audio_file_limit_size_in_bytes=25000000
 language=en
 ```
 
 - `api_key`: required.
-- `audio_file_limit_size_in_bytes`: required; used to decide whether the audio must be split.
-- `language`: optional; must be a supported two-letter ISO-639-1 code. If it is missing or invalid, the app falls back to `en`.
+- `language`: optional; must be a supported two-letter ISO-639-1 code. If it is missing or invalid in `config.properties`, the app falls back to the bundled default `en`.
 - If you pass `-l <code>` on the command line, that language is also saved back to `config.properties` for future runs.
+- `audio_file_limit_size_in_bytes` is now an internal bundled default, not a user-facing property.
 
 Keep real API keys out of version control.
 
@@ -102,7 +104,7 @@ Notes:
 
 ## Troubleshooting
 - `ffmpeg` or `ffprobe` not found: install ffmpeg and make sure both commands are available on `PATH`.
-- `config.properties` errors: ensure the file exists in the working directory and that `api_key` and `audio_file_limit_size_in_bytes` are present.
+- `config.properties` errors: ensure the file exists in the expected location and that `api_key` is present.
 - Invalid language code: use a supported two-letter language code such as `en` or `es`.
 - File rejected: make sure the path exists, points to a readable regular file, and that the file is detected as audio or video.
 - API errors: verify your API key and network connectivity.
