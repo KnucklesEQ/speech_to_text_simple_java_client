@@ -21,8 +21,10 @@ La aplicación ofrece las siguientes capacidades funcionales:
 - valida el archivo antes de iniciar la transcripción;
 - extrae automáticamente el audio de un archivo de vídeo;
 - divide automáticamente el audio en partes cuando supera el límite configurado;
-- permite indicar el idioma del audio;
+- permite indicar el idioma del audio, siempre que sea uno de los soportados;
 - guarda el resultado de la transcripción en un archivo de texto;
+- muestra un resumen final del resultado obtenido;
+- permite decidir al final si el archivo de transcripción permanece en el directorio de trabajo o se mueve a la carpeta del archivo original con un nombre predefinido;
 - muestra mensajes de progreso, aviso y error durante la ejecución.
 
 ## 4. Usuario objetivo
@@ -49,7 +51,11 @@ Si alguno de estos requisitos no se cumple, la aplicación no puede completar el
 
 ## 6. Configuración funcional
 
-La aplicación utiliza un archivo `config.properties` en la raíz del proyecto para recoger los datos de configuración funcional.
+La aplicación utiliza un archivo `config.properties` para recoger los datos de configuración funcional.
+
+Cuando se ejecuta la aplicación mediante el archivo jar, ese fichero debe estar disponible junto al propio jar.
+
+En otros contextos de ejecución, la aplicación utiliza el `config.properties` disponible en el directorio de trabajo actual.
 
 ### 6.1 Datos de configuración
 
@@ -57,17 +63,19 @@ Los parámetros funcionales utilizados son:
 
 - `api_key`: credencial necesaria para acceder al servicio de transcripción;
 - `audio_file_limit_size_in_bytes`: límite máximo de tamaño permitido para procesar un archivo sin necesidad de dividirlo;
-- `language`: preferencia de idioma a utilizar por defecto en la transcripción, expresada mediante un código de dos letras.
+- `language`: preferencia de idioma a utilizar por defecto en la transcripción, expresada mediante un código de dos letras soportado por la aplicación.
 
 ### 6.2 Carácter obligatorio u opcional
 
 - `api_key` es obligatoria para el uso efectivo de la aplicación.
 - `audio_file_limit_size_in_bytes` debe estar disponible para que la aplicación pueda decidir si necesita dividir el archivo.
-- `language` es opcional. Si no existe o no es válida, la aplicación utiliza un idioma por defecto.
+- `language` es opcional. Si no existe, la aplicación utiliza un idioma por defecto. Si existe pero no es válida o no está soportada, la aplicación muestra un aviso y utiliza el idioma por defecto.
 
 ### 6.3 Comportamiento ante errores de configuración
 
 Si falta la configuración requerida o contiene valores no utilizables, la aplicación informa del problema y detiene la ejecución cuando el error impide continuar.
+
+Cuando el valor de `language` almacenado en la configuración no es válido o no está soportado, la aplicación avisa y continúa utilizando el idioma por defecto.
 
 ### 6.4 Ejemplo de configuración mínima
 
@@ -136,6 +144,7 @@ Salida esperada:
 
 - se muestran mensajes de validación y progreso en consola;
 - se genera `transcription.txt` en el directorio de trabajo;
+- al finalizar, la aplicación muestra un resumen del resultado y solicita al usuario la decisión sobre la ubicación final del archivo;
 - el archivo contiene el resultado textual de la transcripción.
 
 #### 7.3.4 Transcripción de un archivo de vídeo
@@ -150,7 +159,8 @@ Salida esperada:
 
 - la consola informa de que se ha detectado un vídeo y de que se extrae su audio;
 - la transcripción continúa automáticamente después de esa extracción;
-- se genera `transcription.txt` en el directorio de trabajo.
+- se genera `transcription.txt` en el directorio de trabajo;
+- al finalizar, la aplicación solicita al usuario la decisión sobre la ubicación final del archivo.
 
 #### 7.3.5 Transcripción de un archivo de audio que supera el límite configurado
 
@@ -164,7 +174,8 @@ Salida esperada:
 
 - la consola informa de que el archivo supera el límite configurado;
 - la aplicación divide automáticamente el contenido en fragmentos;
-- se genera un único `transcription.txt` con el resultado conjunto.
+- se genera un único `transcription.txt` con el resultado conjunto;
+- al finalizar, la aplicación muestra un resumen del texto y solicita al usuario la decisión sobre la ubicación final del archivo.
 
 #### 7.3.6 Transcripción indicando explícitamente el idioma
 
@@ -177,7 +188,7 @@ java -jar build/libs/speech_to_text_simple_java_client-0.1.0.jar -l es ruta/al/a
 Salida esperada:
 
 - la aplicación utiliza el idioma indicado para la transcripción;
-- si el resto de requisitos se cumple, se genera `transcription.txt`;
+- si el resto de requisitos se cumple, se genera `transcription.txt` y la aplicación solicita al usuario la decisión sobre su ubicación final;
 - la preferencia de idioma queda disponible para futuras ejecuciones.
 
 #### 7.3.7 Ejecución sin archivo de entrada
@@ -208,17 +219,17 @@ Salida esperada:
 - la consola muestra la ayuda de uso;
 - la ejecución finaliza sin generar `transcription.txt`.
 
-#### 7.3.9 Ejecución con idioma inválido
+#### 7.3.9 Ejecución con idioma inválido o no soportado
 
-Qué hace: intenta transcribir un archivo indicando un código de idioma no válido.
+Qué hace: intenta transcribir un archivo indicando un código de idioma no soportado.
 
 ```bash
-java -jar build/libs/speech_to_text_simple_java_client-0.1.0.jar -l zzz ruta/al/audio.mp3
+java -jar build/libs/speech_to_text_simple_java_client-0.1.0.jar -l aa ruta/al/audio.mp3
 ```
 
 Salida esperada:
 
-- la consola muestra un error indicando que el código de idioma no es válido;
+- la consola muestra un error indicando que el código de idioma no es válido o no está soportado;
 - la consola muestra la ayuda de uso;
 - la ejecución finaliza sin generar `transcription.txt`.
 
@@ -272,7 +283,7 @@ Desde el punto de vista funcional, el usuario sigue trabajando con un único com
 
 ## 10. Tratamiento de archivos grandes
 
-La aplicación contempla el caso en que el archivo de entrada exceda la duración configurada.
+La aplicación contempla el caso en que el archivo de entrada exceda el límite de tamaño configurado.
 
 En ese escenario:
 
@@ -290,11 +301,13 @@ La aplicación utiliza un criterio de prioridad para determinar el idioma de tra
 2. idioma guardado en la configuración;
 3. idioma por defecto de la aplicación.
 
-Los valores de idioma deben indicarse mediante un código breve de dos letras.
+Los valores de idioma deben indicarse mediante un código breve de dos letras soportado por la aplicación.
 
 Además, cuando el usuario indica explícitamente un idioma en la línea de comandos, la aplicación conserva esa preferencia para futuras ejecuciones.
 
-Si el valor de idioma disponible no es válido, la aplicación avisa y utiliza el idioma por defecto de la aplicación, que es inglés (`en`).
+Si el valor de idioma disponible no es válido o no está soportado, la aplicación avisa y utiliza el idioma por defecto de la aplicación, que es inglés (`en`).
+
+Si el usuario indica en la línea de comandos un idioma no válido o no soportado, la aplicación informa del error, muestra la ayuda y finaliza sin continuar el procesamiento.
 
 ## 12. Comportamientos automáticos
 
@@ -302,7 +315,7 @@ La aplicación realiza automáticamente varias acciones sin solicitar intervenci
 
 - validación de la entrada;
 - conversión de vídeo a audio cuando procede;
-- detección de necesidad de particionado del audio por duración;
+- detección de necesidad de particionado del audio por tamaño de archivo;
 - división automática del audio;
 - uso de un idioma por defecto cuando no existe uno válido;
 - persistencia de la preferencia de idioma cuando el usuario la fija explícitamente;
@@ -312,17 +325,25 @@ La aplicación realiza automáticamente varias acciones sin solicitar intervenci
 
 ### 13.1 Archivo de salida
 
-La aplicación genera un archivo llamado `transcription.txt`.
+La aplicación genera inicialmente un archivo llamado `transcription.txt`.
 
 ### 13.2 Ubicación del archivo de salida
 
-El archivo de salida se guarda en el directorio de trabajo desde el que se ejecuta la aplicación.
+Durante el proceso, el archivo de salida se guarda en el directorio de trabajo desde el que se ejecuta la aplicación.
+
+Una vez completada la transcripción, la aplicación pregunta al usuario si desea mantener ese archivo en esa ubicación o moverlo a la carpeta del archivo original.
+
+Si el usuario decide moverlo, el archivo final se guarda en la carpeta del archivo de entrada con el nombre `<NOMBRE_ORIGINAL>_TRANSCRIPTION.txt`.
+
+Si el usuario decide no moverlo, el resultado permanece como `transcription.txt` en el directorio de trabajo.
 
 ### 13.3 Contenido funcional esperado
 
 El archivo contiene el resultado textual devuelto por el proceso de transcripción.
 
 Cuando el procesamiento se ha realizado a partir de varios fragmentos, la aplicación compone un único resultado final e introduce un separador visible entre partes.
+
+Al finalizar, la aplicación muestra además un resumen con el número de caracteres y palabras del texto generado.
 
 ## 14. Información visible para el usuario durante la ejecución
 
@@ -334,6 +355,8 @@ La aplicación informa al usuario sobre el avance del proceso mediante mensajes 
 - detección de vídeo y extracción de audio;
 - detección de archivo grande y división en partes;
 - comprobación de acceso al servicio de transcripción;
+- presentación de un resumen final del texto generado;
+- solicitud de decisión sobre la ubicación final del archivo de transcripción;
 - finalización del proceso.
 
 Asimismo, la aplicación puede mostrar avisos cuando detecta configuraciones no óptimas o valores no válidos que aún permiten continuar.
@@ -344,7 +367,7 @@ Entre las situaciones que la aplicación puede comunicar al usuario se encuentra
 
 - ausencia del archivo de entrada;
 - presencia de demasiados argumentos de archivo;
-- idioma inválido;
+- idioma inválido o no soportado;
 - archivo no legible o no admitido;
 - ausencia de herramientas externas necesarias;
 - configuración inexistente, incompleta o incorrecta;
@@ -361,10 +384,10 @@ La aplicación presenta las siguientes limitaciones funcionales:
 - procesa un único archivo por ejecución;
 - no ofrece procesamiento por lotes;
 - no dispone de interfaz gráfica;
-- no permite, por ahora, elegir interactivamente el nombre final del archivo de salida;
-- no permite, por ahora, elegir interactivamente una ubicación final distinta para la transcripción;
-- la presentación resumida del resultado aún requiere cierre funcional;
-- la gestión interactiva de la ubicación final y del nombre final de la transcripción aún requiere cierre funcional;
+- no permite elegir libremente el nombre final del archivo de salida;
+- no permite elegir una ubicación arbitraria para la transcripción final;
+- la decisión final sobre la ubicación del archivo se limita a mantenerlo en el directorio de trabajo o moverlo a la carpeta del archivo original;
+- cuando el archivo se mueve, el nombre final queda fijado al patrón `<NOMBRE_ORIGINAL>_TRANSCRIPTION.txt`;
 - depende de una conexión de red operativa y de la disponibilidad de un servicio externo;
 - requiere preparación previa del entorno antes de su uso;
 
@@ -372,15 +395,15 @@ La aplicación presenta las siguientes limitaciones funcionales:
 
 ### 17.1 Caso básico con audio
 
-El usuario proporciona un archivo de audio válido y recibe un archivo `transcription.txt` con el resultado de la transcripción.
+El usuario proporciona un archivo de audio válido. La aplicación genera `transcription.txt`, muestra un resumen final y permite decidir si el archivo permanece en el directorio de trabajo o se mueve a la carpeta del archivo original.
 
 ### 17.2 Caso con vídeo
 
-El usuario proporciona un archivo de vídeo válido. La aplicación extrae automáticamente el audio necesario, realiza la transcripción y genera un único archivo de salida.
+El usuario proporciona un archivo de vídeo válido. La aplicación extrae automáticamente el audio necesario, realiza la transcripción, genera un único archivo de salida y solicita la decisión final sobre su ubicación.
 
 ### 17.3 Caso con archivo grande
 
-El usuario proporciona un archivo cuyo tamaño supera el límite configurado. La aplicación lo divide, procesa las partes y entrega un único resultado final.
+El usuario proporciona un archivo cuyo tamaño supera el límite configurado. La aplicación lo divide, procesa las partes, recompone un único resultado final y permite decidir la ubicación final del archivo generado.
 
 ### 17.4 Caso con idioma indicado por el usuario
 
@@ -411,6 +434,4 @@ El uso de la aplicación implica el envío del contenido a un servicio externo d
 
 La aplicación proporciona una capacidad funcional clara: recibir un archivo multimedia local y producir una salida textual con su transcripción.
 
-La aplicación cubre el flujo principal de uso, incluyendo validación, tratamiento automático de vídeo, gestión de archivos grandes, configuración de idioma y generación de una salida única.
-
-No obstante, sigue existiendo una pequeña parte del comportamiento funcional que aún debe incorporarse para considerar el producto terminado, en particular las opciones relacionadas con la presentación resumida del resultado y la ubicación final del archivo de transcripción.
+La aplicación cubre el flujo principal de uso, incluyendo validación, tratamiento automático de vídeo, gestión de archivos grandes, configuración de idioma, generación inicial de `transcription.txt`, presentación de un resumen final y decisión sobre la ubicación final del archivo de transcripción.
