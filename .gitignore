@@ -41,11 +41,3 @@
 
 # Cache of project
 .gradletasknamecache
-
-## Other ##
-# File to store the test api key (user will need to create this file)
-api.txt
-
-# Sample audio/video files
-*.mp4
-*.mpga
